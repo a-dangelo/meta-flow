@@ -1,0 +1,22 @@
+# Meta-flow system dependencies
+
+# Core dependencies (choose one LLM provider)
+# Option 1: Direct Anthropic API
+anthropic>=0.40.0      # Claude API client for meta-agent
+
+# Option 2: AIMLAPI (uses OpenAI client format)
+openai>=1.0.0          # OpenAI client for AIMLAPI compatibility
+
+# Testing dependencies
+pytest>=7.4.0          # Test framework
+pytest-cov>=4.1.0      # Coverage reporting
+pytest-mock>=3.11.1    # Mocking for tests
+
+# Development dependencies
+black>=23.0.0          # Code formatting
+mypy>=1.4.0           # Type checking
+flake8>=6.0.0         # Linting
+
+# Optional dependencies for future enhancements
+# pyyaml>=6.0          # For YAML configuration files
+# jinja2>=3.1.0        # For template-based code generation (if needed)
