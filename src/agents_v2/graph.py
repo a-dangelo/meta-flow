@@ -199,7 +199,8 @@ def _route_from_generator(state: MetaAgentState) -> Literal["end", "escalation"]
 def run_meta_agent(
     raw_spec: str,
     checkpointer: SqliteSaver = None,
-    model_version: str = "x-ai/grok-4-fast-reasoning",
+    llm_provider: str = "aimlapi",
+    model_version: str = None,
     prompt_version: str = "2.0.0",
     config: dict = None
 ) -> MetaAgentState:
@@ -209,7 +210,8 @@ def run_meta_agent(
     Args:
         raw_spec: Text workflow specification
         checkpointer: SQLite saver for checkpointing (optional)
-        model_version: LLM model to use
+        llm_provider: LLM provider to use ('aimlapi' or 'gemini', default: 'aimlapi')
+        model_version: LLM model to use (optional, reads from AIMLAPI_MODEL or GEMINI_MODEL env vars)
         prompt_version: Prompt template version
         config: LangGraph configuration (for thread_id, etc.)
 
@@ -218,11 +220,12 @@ def run_meta_agent(
 
     Example:
         >>> from langgraph.checkpoint.sqlite import SqliteSaver
-        >>> checkpointer = SqliteSaver.from_conn_string(":memory:")
-        >>> result = run_meta_agent(
-        ...     raw_spec="Workflow: test\\nDescription: test\\nSteps:\\n1. Do something",
-        ...     checkpointer=checkpointer
-        ... )
+        >>> with SqliteSaver.from_conn_string(":memory:") as checkpointer:
+        ...     result = run_meta_agent(
+        ...         raw_spec="Workflow: test\\nDescription: test\\nSteps:\\n1. Do something",
+        ...         checkpointer=checkpointer,
+        ...         llm_provider="gemini"
+        ...     )
         >>> print(result['execution_status'])
         'complete'
     """
@@ -234,15 +237,20 @@ def run_meta_agent(
     # Create initial state
     initial_state = create_initial_state(
         raw_spec=raw_spec,
+        llm_provider=llm_provider,
         model_version=model_version,
         prompt_version=prompt_version
     )
 
     # Run graph
     logger.info(f"Starting meta-agent execution (ID: {initial_state['execution_id']})")
+    logger.info(f"Provider: {initial_state['llm_provider']}, Model: {initial_state['model_version']}")
 
     if config is None:
-        config = {"configurable": {"thread_id": initial_state['execution_id']}}
+        config = {
+            "configurable": {"thread_id": initial_state['execution_id']},
+            "recursion_limit": 10  # Limit to 10 iterations (parser + 3 retries * 3 nodes)
+        }
 
     final_state = graph.invoke(initial_state, config=config)
 

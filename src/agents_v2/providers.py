@@ -133,25 +133,24 @@ class GeminiProvider(LLMProvider):
         max_tokens: int = 4000
     ) -> str:
         """Generate completion using Gemini."""
-        import google.generativeai as genai
+        from google import genai
 
-        # Configure API
-        genai.configure(api_key=self.api_key)
+        # Set API key in environment for client
+        os.environ['GEMINI_API_KEY'] = self.api_key
 
-        # Create model
-        model = genai.GenerativeModel(
-            model_name=self.model,
-            generation_config={
-                "temperature": temperature,
-                "max_output_tokens": max_tokens,
-            },
-            system_instruction=system_prompt
-        )
+        # Create client (automatically reads GEMINI_API_KEY from env)
+        client = genai.Client()
 
         logger.debug(f"Calling Gemini with model: {self.model}")
 
+        # Build prompt with system instruction
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
         # Generate response
-        response = model.generate_content(user_prompt)
+        response = client.models.generate_content(
+            model=self.model,
+            contents=full_prompt
+        )
 
         if not response.text:
             raise ValueError("Gemini returned empty response")

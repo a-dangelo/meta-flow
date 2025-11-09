@@ -188,22 +188,16 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
     logger.info("Reasoner node: Using LLM to infer workflow structure")
 
     try:
-        # Import LLM client (lazy import to avoid dependency issues)
-        from openai import OpenAI
-        import os
+        # Get provider from state (default to aimlapi)
+        from .providers import create_provider
 
-        # Get API configuration
-        api_key = os.getenv('AIMLAPI_KEY')
-        if not api_key:
-            raise ReasoningError(
-                "Missing AIMLAPI_KEY environment variable",
-                retry_count=state.get('retry_count', 0)
-            )
+        provider_name = state.get('llm_provider', 'aimlapi')
+        model_override = state.get('model_version')
 
-        client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.aimlapi.com/v1"
-        )
+        logger.info(f"Using provider: {provider_name}")
+
+        # Create provider instance
+        provider = create_provider(provider_name, model=model_override)
 
         # Build prompt from parsed sections
         prompt = _build_reasoning_prompt(
@@ -211,20 +205,15 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
             state.get('feedback_messages', [])
         )
 
-        # Call LLM
-        logger.debug(f"Calling LLM with model: {state.get('model_version', 'x-ai/grok-4-fast-reasoning')}")
-        response = client.chat.completions.create(
-            model=state.get('model_version', 'x-ai/grok-4-fast-reasoning'),
-            messages=[
-                {"role": "system", "content": _get_system_prompt()},
-                {"role": "user", "content": prompt}
-            ],
+        # Call LLM via provider
+        logger.debug(f"Calling LLM: {provider.get_model_name()}")
+        llm_output = provider.generate(
+            system_prompt=_get_system_prompt(),
+            user_prompt=prompt,
             temperature=0.1,
             max_tokens=4000
         )
 
-        # Extract response
-        llm_output = response.choices[0].message.content.strip()
         logger.debug(f"LLM response length: {len(llm_output)} chars")
 
         # Clean markdown code fences if present
@@ -312,9 +301,24 @@ def _build_reasoning_prompt(
 
 
 def _get_system_prompt() -> str:
-    """Get system prompt for LLM reasoning."""
-    # For now, use simplified prompt from v1
-    # TODO: Load from prompts/simple_meta_agent_system_prompt.md
+    """
+    Get system prompt for LLM reasoning.
+
+    Loads the v2.1 Gemini-optimized prompt from file.
+    Falls back to inline prompt if file not found.
+    """
+    from pathlib import Path
+
+    # Try to load from file
+    prompt_file = Path(__file__).parent.parent.parent / "prompts" / "meta_agent_v2_system_prompt.md"
+
+    if prompt_file.exists():
+        try:
+            return prompt_file.read_text(encoding='utf-8')
+        except Exception as e:
+            logger.warning(f"Failed to load prompt from file: {e}, using fallback")
+
+    # Fallback inline prompt (simplified)
     return """You are a workflow parser. Convert specifications into JSON with ZERO tolerance for errors.
 
 OUTPUT STRUCTURE:

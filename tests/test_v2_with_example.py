@@ -3,6 +3,11 @@
 import os
 import sys
 import argparse
+from pathlib import Path
+
+# Add parent directory to path to import src module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
 from langgraph.checkpoint.sqlite import SqliteSaver
 from src.agents_v2 import run_meta_agent
@@ -14,6 +19,10 @@ load_dotenv()
 parser = argparse.ArgumentParser(description='Test meta-agent v2 with a specification file')
 parser.add_argument('--spec', type=str, default='specs/examples/simple_sequential.txt',
                     help='Path to specification file (default: specs/examples/simple_sequential.txt)')
+parser.add_argument('--provider', type=str, default='aimlapi', choices=['aimlapi', 'gemini'],
+                    help='LLM provider to use (default: aimlapi)')
+parser.add_argument('--model', type=str, default=None,
+                    help='Model name override (optional, reads from AIMLAPI_MODEL or GEMINI_MODEL env vars)')
 args = parser.parse_args()
 
 # Read the specification
@@ -26,6 +35,13 @@ except FileNotFoundError:
 
 print("=" * 60)
 print(f"Testing Meta-Agent v2 with: {args.spec}")
+print(f"Provider: {args.provider}")
+if args.model:
+    print(f"Model: {args.model}")
+else:
+    import os
+    model = os.getenv(f"{args.provider.upper()}_MODEL", "default")
+    print(f"Model: {model} (from env var)")
 print("=" * 60)
 print("\nInput Spec:")
 print(spec)
@@ -36,7 +52,9 @@ with SqliteSaver.from_conn_string(":memory:") as checkpointer:
     # Run meta-agent
     result = run_meta_agent(
         raw_spec=spec,
-        checkpointer=checkpointer
+        checkpointer=checkpointer,
+        llm_provider=args.provider,
+        model_version=args.model
     )
 
 # Display results

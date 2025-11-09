@@ -107,8 +107,11 @@ class MetaAgentState(TypedDict, total=False):
     timestamp: str
     """ISO 8601 timestamp when execution started"""
 
+    llm_provider: str
+    """LLM provider to use ('aimlapi' or 'gemini')"""
+
     model_version: str
-    """LLM model used (e.g., 'x-ai/grok-4-fast-reasoning')"""
+    """LLM model used (e.g., 'x-ai/grok-4-fast-reasoning' or 'gemini-2.0-flash-lite')"""
 
     prompt_version: str
     """Version of prompt template used"""
@@ -139,7 +142,8 @@ class MetaAgentState(TypedDict, total=False):
 
 def create_initial_state(
     raw_spec: str,
-    model_version: str = "x-ai/grok-4-fast-reasoning",
+    llm_provider: str = "aimlapi",
+    model_version: str = None,
     prompt_version: str = "2.0.0"
 ) -> MetaAgentState:
     """
@@ -147,12 +151,22 @@ def create_initial_state(
 
     Args:
         raw_spec: Text specification to process
-        model_version: LLM model identifier
+        llm_provider: LLM provider to use ('aimlapi' or 'gemini')
+        model_version: LLM model identifier (optional, reads from env vars or uses hardcoded default)
         prompt_version: Prompt template version
 
     Returns:
         MetaAgentState initialized for processing
     """
+    import os
+
+    # Set model based on: 1) explicit param, 2) env var, 3) hardcoded default
+    if model_version is None:
+        if llm_provider == "gemini":
+            model_version = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
+        else:
+            model_version = os.getenv("AIMLAPI_MODEL", "x-ai/grok-4-fast-reasoning")
+
     return MetaAgentState(
         # Input
         raw_spec=raw_spec,
@@ -178,6 +192,7 @@ def create_initial_state(
 
         # Metadata
         timestamp=datetime.utcnow().isoformat(),
+        llm_provider=llm_provider,
         model_version=model_version,
         prompt_version=prompt_version,
         execution_id=str(uuid.uuid4()),

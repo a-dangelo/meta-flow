@@ -7,6 +7,9 @@ anthropic>=0.40.0      # Claude API client for meta-agent
 # Option 2: AIMLAPI (uses OpenAI client format)
 openai>=1.0.0          # OpenAI client for AIMLAPI compatibility
 
+# Option 3: Google Gemini
+google-genai>=0.1.0    # Google Gemini API client
+
 # Environment management
 python-dotenv>=1.0.0   # Load environment variables from .env file
 
