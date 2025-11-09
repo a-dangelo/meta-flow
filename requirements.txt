@@ -10,10 +10,19 @@ openai>=1.0.0          # OpenAI client for AIMLAPI compatibility
 # Environment management
 python-dotenv>=1.0.0   # Load environment variables from .env file
 
+# LangGraph and LangChain dependencies (v2 production framework)
+langgraph>=0.2.0       # State machine framework for meta-agent v2
+langgraph-checkpoint-sqlite>=3.0.0  # SQLite checkpointing support (REQUIRED)
+langchain>=0.3.0       # Agent framework base
+langchain-openai>=0.2.0  # OpenAI integration (for AIMLAPI)
+langsmith>=0.1.0       # Observability and tracing
+pydantic>=2.0.0        # Data validation and schemas with enhanced validators
+
 # Testing dependencies
 pytest>=7.4.0          # Test framework
 pytest-cov>=4.1.0      # Coverage reporting
 pytest-mock>=3.11.1    # Mocking for tests
+pytest-asyncio>=0.21.0 # Async testing support for LangGraph
 
 # Development dependencies
 black>=23.0.0          # Code formatting
