@@ -15,7 +15,7 @@ python-dotenv>=1.0.0   # Load environment variables from .env file
 
 # LangGraph and LangChain dependencies (v2 production framework)
 langgraph>=0.2.0       # State machine framework for meta-agent v2
-langgraph-checkpoint-sqlite>=3.0.0  # SQLite checkpointing support (REQUIRED)
+langgraph-checkpoint-sqlite>=0.2.0,<3.0.0  # SQLite checkpointing support (REQUIRED)
 langchain>=0.3.0       # Agent framework base
 langchain-openai>=0.2.0  # OpenAI integration (for AIMLAPI)
 langsmith>=0.1.0       # Observability and tracing

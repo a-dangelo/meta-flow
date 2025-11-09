@@ -11,12 +11,75 @@ import re
 import json
 
 
+def _validate_safe_condition(v: str, context: str = "condition") -> str:
+    """
+    Shared validation logic for conditions.
+
+    Validates that a condition is safe to evaluate by:
+    1. Checking it's not empty
+    2. Rejecting dangerous patterns FIRST (before operator check)
+    3. Ensuring allowed operators are present
+    4. Validating variable reference syntax
+
+    Args:
+        v: The condition string to validate
+        context: Context name for error messages (e.g., "condition", "routing condition")
+
+    Returns:
+        The validated condition string
+
+    Raises:
+        ValueError: If validation fails
+    """
+    if not v or not v.strip():
+        raise ValueError(f"{context.capitalize()} cannot be empty")
+
+    # Check for dangerous patterns FIRST (before operator check to prevent bypass)
+    dangerous_patterns = [
+        'import', 'from', 'exec', 'eval', 'lambda', 'compile',
+        'open', 'file', 'input', 'raw_input', 'globals', 'locals',
+        'vars', 'dir', 'getattr', 'setattr', 'delattr', 'hasattr',
+        'os.', 'sys.', 'subprocess', '__builtins__'
+    ]
+    v_lower = v.lower()
+    for pattern in dangerous_patterns:
+        if pattern in v_lower:
+            raise ValueError(
+                f"Unsafe pattern '{pattern}' detected in {context}. "
+                f"Only simple comparisons are allowed."
+            )
+
+    # Check for dunder patterns using regex (more specific than substring)
+    if re.search(r'\b__\w+__\b', v):
+        raise ValueError(
+            f"Dunder methods/attributes not allowed in {context}. "
+            f"Only simple comparisons are allowed."
+        )
+
+    # Check for allowed operators
+    allowed_operators = ['>', '<', '==', '!=', '>=', '<=', 'and', 'or', 'not', 'in', 'is']
+    has_operator = any(op in v for op in allowed_operators)
+    if not has_operator:
+        raise ValueError(
+            f"{context.capitalize()} must contain a comparison operator: {', '.join(allowed_operators)}"
+        )
+
+    # Check for variable references - should use {{var}}
+    if '$' in v or '{' in v:
+        if not re.search(r'\{\{[a-z_][a-z0-9_]*\}\}', v):
+            raise ValueError(
+                f"Variable references in {context} must use {{{{variable_name}}}} syntax"
+            )
+
+    return v
+
+
 class WorkflowInput(BaseModel):
     """Validated input parameter for workflow."""
 
     name: str = Field(..., description="Parameter name (snake_case)")
     type: str = Field(..., description="Parameter type (string, int, dict, etc.)")
-    description: Optional[str] = Field(default="", description="Human-readable description")
+    description: Optional[str] = Field(default=None, description="Human-readable description")
     is_credential: bool = Field(default=False, description="Whether this is a credential parameter")
 
     @field_validator('name')
@@ -48,6 +111,10 @@ class WorkflowInput(BaseModel):
     @model_validator(mode='after')
     def detect_credential(self) -> 'WorkflowInput':
         """Auto-detect credential parameters based on name patterns."""
+        # Only auto-detect if not explicitly set to True already
+        if self.is_credential:
+            return self
+
         credential_patterns = [
             'api_key', 'apikey', 'token', 'password', 'secret',
             'credential', 'auth', 'authorization', 'bearer',
@@ -72,7 +139,7 @@ class WorkflowOutput(BaseModel):
 
     name: str = Field(..., description="Output variable name (snake_case)")
     type: str = Field(..., description="Output type")
-    description: Optional[str] = Field(default="", description="Human-readable description")
+    description: Optional[str] = Field(default=None, description="Human-readable description")
 
     @field_validator('name')
     @classmethod
@@ -213,39 +280,7 @@ class ConditionalWorkflow(BaseModel):
     @classmethod
     def validate_condition(cls, v: str) -> str:
         """Ensure condition is safe to evaluate."""
-        if not v or not v.strip():
-            raise ValueError("Condition cannot be empty")
-
-        # Check for allowed operators
-        allowed_operators = ['>', '<', '==', '!=', '>=', '<=', 'and', 'or', 'not', 'in', 'is']
-        has_operator = any(op in v for op in allowed_operators)
-        if not has_operator:
-            raise ValueError(
-                f"Condition must contain a comparison operator: {', '.join(allowed_operators)}"
-            )
-
-        # Check for dangerous patterns
-        dangerous_patterns = [
-            'import', 'exec', 'eval', '__', 'lambda', 'compile',
-            'open', 'file', 'input', 'raw_input', 'globals', 'locals',
-            'vars', 'dir', 'getattr', 'setattr', 'delattr', 'hasattr'
-        ]
-        v_lower = v.lower()
-        for pattern in dangerous_patterns:
-            if pattern in v_lower:
-                raise ValueError(
-                    f"Unsafe pattern '{pattern}' detected in condition. "
-                    f"Only simple comparisons are allowed."
-                )
-
-        # Check for variable references - should use {{var}}
-        if '$' in v or '{' in v:
-            if not re.search(r'\{\{[a-z_][a-z0-9_]*\}\}', v):
-                raise ValueError(
-                    "Variable references must use {{{{variable_name}}}} syntax"
-                )
-
-        return v
+        return _validate_safe_condition(v, "condition")
 
     def model_dump(self, **kwargs) -> Dict[str, Any]:
         """Serialize to dict."""
@@ -295,20 +330,7 @@ class RoutingRule(BaseModel):
     @classmethod
     def validate_condition(cls, v: str) -> str:
         """Validate routing condition (same as ConditionalWorkflow)."""
-        if not v or not v.strip():
-            raise ValueError("Routing condition cannot be empty")
-
-        # Use same validation as ConditionalWorkflow
-        dangerous_patterns = [
-            'import', 'exec', 'eval', '__', 'lambda', 'compile',
-            'open', 'file', 'input', 'globals', 'locals'
-        ]
-        v_lower = v.lower()
-        for pattern in dangerous_patterns:
-            if pattern in v_lower:
-                raise ValueError(f"Unsafe pattern '{pattern}' in routing condition")
-
-        return v
+        return _validate_safe_condition(v, "routing condition")
 
     @field_validator('workflow_name')
     @classmethod

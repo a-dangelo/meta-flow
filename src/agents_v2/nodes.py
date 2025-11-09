@@ -205,32 +205,96 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
             state.get('feedback_messages', [])
         )
 
-        # Call LLM via provider
-        logger.debug(f"Calling LLM: {provider.get_model_name()}")
-        llm_output = provider.generate(
-            system_prompt=_get_system_prompt(),
-            user_prompt=prompt,
-            temperature=0.1,
-            max_tokens=4000
+        # Determine if we should use structured output
+        use_structured = (
+            provider_name == 'gemini' and
+            hasattr(provider, 'generate_structured') and
+            state.get('use_structured_output', True)  # Can be disabled via state
         )
 
-        logger.debug(f"LLM response length: {len(llm_output)} chars")
+        if use_structured:
+            # Use structured output for Gemini (guaranteed JSON validity)
+            logger.info("Using Gemini structured output mode")
 
-        # Clean markdown code fences if present
-        if llm_output.startswith('```'):
-            llm_output = re.sub(r'^```(?:json)?\s*', '', llm_output)
-            llm_output = re.sub(r'\s*```$', '', llm_output)
+            # Get JSON schema for WorkflowSpec
+            from .schema_converter import generate_workflow_schema
 
-        # Parse JSON
-        try:
-            inferred_structure = json.loads(llm_output)
-        except json.JSONDecodeError as e:
-            logger.error(f"LLM produced invalid JSON: {e}")
-            raise ReasoningError(
-                f"LLM output is not valid JSON: {e}",
-                llm_response=llm_output,
-                retry_count=state.get('retry_count', 0)
+            try:
+                workflow_schema = generate_workflow_schema()
+                logger.debug(f"Generated schema with {len(workflow_schema.get('properties', {}))} properties")
+
+                llm_output = provider.generate_structured(
+                    system_prompt=_get_system_prompt(),
+                    user_prompt=prompt,
+                    response_schema=workflow_schema,
+                    temperature=0.05,  # Lower for Gemini
+                    max_tokens=4000
+                )
+
+                # With structured output, JSON is guaranteed valid
+                inferred_structure = json.loads(llm_output)
+                logger.info("Structured output produced valid JSON")
+
+            except Exception as e:
+                logger.warning(f"Structured output failed, falling back to regular: {e}")
+                # Fall back to regular generation
+                use_structured = False
+
+        if not use_structured:
+            # Regular generation (original code)
+            logger.debug(f"Calling LLM: {provider.get_model_name()}")
+            llm_output = provider.generate(
+                system_prompt=_get_system_prompt(),
+                user_prompt=prompt,
+                temperature=0.1 if provider_name != 'gemini' else 0.05,
+                max_tokens=4000
             )
+
+            logger.debug(f"LLM response length: {len(llm_output)} chars")
+
+            # Clean markdown code fences if present
+            if llm_output.startswith('```'):
+                llm_output = re.sub(r'^```(?:json)?\s*', '', llm_output)
+                llm_output = re.sub(r'\s*```$', '', llm_output)
+
+            # Parse JSON with repair fallback
+            try:
+                inferred_structure = json.loads(llm_output)
+            except json.JSONDecodeError as e:
+                logger.warning(f"JSON parse failed, attempting repair: {e}")
+
+                # Try to repair if using Gemini
+                if provider_name == 'gemini':
+                    from .json_repair import repair_gemini_json
+
+                    # Get available variables for repair
+                    available_vars = set()
+                    # Add input variables
+                    for inp in state['parsed_sections'].get('inputs', []):
+                        # Extract variable name from "var_name (type): description"
+                        if '(' in inp:
+                            var_name = inp.split('(')[0].strip()
+                            available_vars.add(var_name)
+
+                    repaired_json = repair_gemini_json(llm_output, available_vars)
+
+                    try:
+                        inferred_structure = json.loads(repaired_json)
+                        logger.info("JSON repair successful")
+                    except json.JSONDecodeError:
+                        logger.error(f"JSON repair failed, original error: {e}")
+                        raise ReasoningError(
+                            f"LLM output is not valid JSON even after repair: {e}",
+                            llm_response=llm_output,
+                            retry_count=state.get('retry_count', 0)
+                        )
+                else:
+                    # Non-Gemini providers don't need repair typically
+                    raise ReasoningError(
+                        f"LLM output is not valid JSON: {e}",
+                        llm_response=llm_output,
+                        retry_count=state.get('retry_count', 0)
+                    )
 
         # Calculate confidence score
         confidence = _calculate_confidence(
@@ -444,7 +508,8 @@ def validator_node(state: MetaAgentState) -> MetaAgentState:
             'workflow_spec': None,
             'validation_errors': errors,
             'execution_status': 'error',
-            'feedback_messages': errors  # Use for retry
+            'feedback_messages': errors[:5],  # Use for retry (limit to 5)
+            'retry_count': state.get('retry_count', 0) + 1
         }
 
     except Exception as e:

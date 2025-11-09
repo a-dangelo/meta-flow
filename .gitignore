@@ -211,3 +211,6 @@ CLAUDE.md
 claude-helpers/
 REQUIREMENTS.md
 cm.txt
+
+# Test logs
+logs/

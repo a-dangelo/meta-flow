@@ -6,7 +6,7 @@ in the LangGraph state machine, enabling checkpointing and recovery.
 """
 
 from typing import TypedDict, Optional, List, Dict, Any, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 
@@ -191,7 +191,7 @@ def create_initial_state(
         should_escalate=False,
 
         # Metadata
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         llm_provider=llm_provider,
         model_version=model_version,
         prompt_version=prompt_version,
@@ -227,7 +227,7 @@ def add_error_to_state(
         'stage': stage,
         'error_type': error_type,
         'message': message,
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'recoverable': recoverable
     }
 

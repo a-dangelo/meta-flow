@@ -25,15 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 def create_meta_agent_graph(
-    checkpointer: SqliteSaver = None,
-    enable_tracing: bool = False
+    checkpointer: SqliteSaver = None
 ) -> StateGraph:
     """
     Create the LangGraph state machine for meta-agent v2.
 
     Args:
         checkpointer: SQLite saver for checkpointing (optional)
-        enable_tracing: Enable LangSmith tracing (optional)
 
     Returns:
         Compiled StateGraph ready for execution
@@ -157,13 +155,7 @@ def _route_from_validator(
     if state.get('validation_errors'):
         # Validation failed
         if should_retry(state):
-            # Increment retry count
-            state['retry_count'] = state.get('retry_count', 0) + 1
-            logger.info(f"Validation failed, retry {state['retry_count']}/3")
-
-            # Add feedback for LLM
-            state['feedback_messages'] = state.get('validation_errors', [])[:5]
-
+            logger.info(f"Validation failed, retry {state.get('retry_count', 0)}/3")
             return "reasoner"
         else:
             # Retry limit reached

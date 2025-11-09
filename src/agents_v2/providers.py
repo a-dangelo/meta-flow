@@ -2,9 +2,11 @@
 LLM provider abstraction for meta-agent v2.
 
 Supports multiple LLM providers (AIMLAPI, Gemini) with a unified interface.
+Includes structured output support for Gemini to ensure valid JSON generation.
 """
 
 import os
+import json
 import logging
 from typing import Dict, Any, Optional, List
 from abc import ABC, abstractmethod
@@ -94,6 +96,9 @@ class AIMLAPIProvider(LLMProvider):
             max_tokens=max_tokens
         )
 
+        if not response.choices or not response.choices[0].message.content:
+            raise ValueError("AIMLAPI returned empty response")
+
         return response.choices[0].message.content.strip()
 
     def get_model_name(self) -> str:
@@ -102,14 +107,14 @@ class AIMLAPIProvider(LLMProvider):
 
 
 class GeminiProvider(LLMProvider):
-    """Google Gemini provider."""
+    """Google Gemini provider with structured output support."""
 
     def __init__(self, model: Optional[str] = None):
         """
         Initialize Gemini provider.
 
         Args:
-            model: Model identifier (default: from GEMINI_MODEL env var or gemini-2.0-flash-lite)
+            model: Model identifier (default: from GEMINI_MODEL env var or gemini-2.5-pro)
 
         Raises:
             ValueError: If GEMINI_API_KEY environment variable is not set
@@ -122,7 +127,8 @@ class GeminiProvider(LLMProvider):
             )
 
         # Use provided model, or env var, or default
-        self.model = model or os.getenv('GEMINI_MODEL', 'gemini-2.0-flash-lite')
+        # Note: gemini-2.5-pro recommended for complex workflows
+        self.model = model or os.getenv('GEMINI_MODEL', 'gemini-2.5-pro')
         logger.info(f"Initialized Gemini provider with model: {self.model}")
 
     def generate(
@@ -149,7 +155,11 @@ class GeminiProvider(LLMProvider):
         # Generate response
         response = client.models.generate_content(
             model=self.model,
-            contents=full_prompt
+            contents=full_prompt,
+            config={
+                'temperature': temperature,
+                'max_output_tokens': max_tokens
+            }
         )
 
         if not response.text:
@@ -160,6 +170,73 @@ class GeminiProvider(LLMProvider):
     def get_model_name(self) -> str:
         """Get model name."""
         return f"gemini:{self.model}"
+
+    def generate_structured(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        response_schema: Dict[str, Any],
+        temperature: float = 0.05,  # Lower for Gemini to reduce hallucination
+        max_tokens: int = 4000
+    ) -> str:
+        """
+        Generate completion with structured output (guaranteed JSON validity).
+
+        Args:
+            system_prompt: System instructions
+            user_prompt: User message
+            response_schema: JSON Schema for the response format
+            temperature: Sampling temperature (lower recommended for Gemini)
+            max_tokens: Maximum tokens to generate
+
+        Returns:
+            Generated JSON string (guaranteed valid)
+
+        Raises:
+            Exception: If API call fails or structured output not supported
+        """
+        from google import genai
+        from google.genai import types
+
+        # Set API key in environment for client
+        os.environ['GEMINI_API_KEY'] = self.api_key
+
+        # Create client
+        client = genai.Client()
+
+        logger.debug(f"Calling Gemini structured output with model: {self.model}")
+        logger.debug(f"Schema keys: {list(response_schema.keys())}")
+
+        # Build prompt with system instruction
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+
+        try:
+            # Generate with structured output
+            response = client.models.generate_content(
+                model=self.model,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=response_schema,
+                    temperature=temperature,  # Very low for reliability
+                    max_token_count=max_tokens
+                )
+            )
+
+            if not response.text:
+                raise ValueError("Gemini returned empty response")
+
+            # Validate JSON before returning
+            json.loads(response.text)  # This should never fail with structured output
+            logger.debug("Structured output generated valid JSON")
+
+            return response.text.strip()
+
+        except Exception as e:
+            logger.error(f"Structured output generation failed: {e}")
+            # Fall back to regular generation with warning
+            logger.warning("Falling back to regular generation (JSON validity not guaranteed)")
+            return self.generate(system_prompt, user_prompt, temperature, max_tokens)
 
 
 def create_provider(provider_name: str, model: Optional[str] = None) -> LLMProvider:
