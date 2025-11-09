@@ -14,16 +14,16 @@ if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1
 fi
 
 # Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv venv
+if [ ! -d ".venv" ]; then
+    echo "Creating virtual environment (.venv)..."
+    python3 -m venv .venv --prompt venv
 else
-    echo "Virtual environment already exists"
+    echo "Virtual environment (.venv) already exists"
 fi
 
 # Activate virtual environment
 echo "Activating virtual environment..."
-source venv/bin/activate
+source .venv/bin/activate
 
 # Upgrade pip
 echo "Upgrading pip..."
@@ -46,10 +46,10 @@ echo ""
 echo "✓ Development environment setup complete!"
 echo ""
 echo "To activate the virtual environment, run:"
-echo "    source venv/bin/activate"
+echo "    source .venv/bin/activate"
 echo ""
 echo "To test the installation, run:"
 echo "    python src/core/workflow_ast.py"
 echo ""
-echo "To run tests (once created), use:"
-echo "    pytest tests/"
+echo "To run tests, use:"
+echo "    pytest tests/ -v"
