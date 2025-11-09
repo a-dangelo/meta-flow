@@ -1,0 +1,24 @@
+Workflow: support_ticket_router
+Description: Intelligently route support tickets based on priority and type
+
+Inputs:
+- ticket_id (string): Support ticket identifier
+- customer_tier (string): Customer tier (bronze, silver, gold, platinum)
+- ticket_api_key (string): API key for ticket system
+- escalation_webhook (string): Webhook for escalations
+
+Steps:
+1. Fetch ticket details including description and metadata
+2. Analyze ticket sentiment and urgency using AI
+3. If customer_tier is platinum AND urgency is high, route to executive support team
+4. If ticket_type is billing, route to billing specialists
+5. If ticket_type is technical AND complexity is high, route to senior engineers
+6. Otherwise, route to general support queue
+7. Send notification to assigned team
+8. Update ticket status and assignment
+
+Outputs:
+- assigned_team (string): Team assigned to handle the ticket
+- priority_level (string): Calculated priority (low, medium, high, critical)
+- estimated_response_time (integer): Estimated response time in minutes
+- escalation_required (boolean): Whether ticket needs escalation

@@ -7,6 +7,9 @@ anthropic>=0.40.0      # Claude API client for meta-agent
 # Option 2: AIMLAPI (uses OpenAI client format)
 openai>=1.0.0          # OpenAI client for AIMLAPI compatibility
 
+# Environment management
+python-dotenv>=1.0.0   # Load environment variables from .env file
+
 # Testing dependencies
 pytest>=7.4.0          # Test framework
 pytest-cov>=4.1.0      # Coverage reporting

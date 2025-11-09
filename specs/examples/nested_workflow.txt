@@ -1,0 +1,23 @@
+Workflow: order_fulfillment
+Description: Process customer orders with payment verification and shipping
+
+Inputs:
+- order_id (string): Unique order identifier
+- customer_id (string): Customer identifier
+- payment_token (string): Payment processing token
+- warehouse_api_key (string): API key for warehouse system
+
+Steps:
+1. Fetch order details from order management system
+2. Validate inventory availability for all items
+3. If payment_amount > 500, perform enhanced fraud check then process payment
+4. Otherwise, process standard payment
+5. Generate shipping label and tracking number
+6. Update order status to shipped
+7. Send confirmation email to customer
+
+Outputs:
+- order_status (string): Final order status (shipped, failed, pending)
+- tracking_number (string): Shipping tracking number
+- payment_confirmation (string): Payment transaction ID
+- estimated_delivery (string): Estimated delivery date

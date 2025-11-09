@@ -1,0 +1,20 @@
+Workflow: expense_approval
+Description: Routes expense reports with AI-powered fraud detection
+
+Inputs:
+- expense_id (string): Expense record ID
+- amount (float): Amount in USD
+- employee_level (string): Employee seniority level
+- fraud_api_key (string): API key for fraud detection service
+
+Steps:
+1. Fetch expense details from ERP system using expense_id
+2. Analyze expense for fraud risk using fraud detection API
+3. If amount > 10000 OR fraud_score > 0.7, route to senior manager for manual review
+4. Otherwise, auto-approve the expense and send confirmation email
+
+Outputs:
+- approved (boolean): Approval status
+- approver (string): Name of approver (person or system)
+- fraud_score (float): AI-calculated fraud risk score (0.0-1.0)
+- notification_sent (boolean): Whether notification was sent

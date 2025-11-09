@@ -1,0 +1,31 @@
+Workflow: compliance_check
+Description: Run multiple compliance checks in parallel for faster processing
+
+Inputs:
+- document_id (string): Document to check for compliance
+- compliance_api_key (string): API key for compliance service (SECRET: must be from environment variable or secrets manager, never hardcoded)
+- gdpr_endpoint (string): GDPR compliance check endpoint
+- sox_endpoint (string): SOX compliance check endpoint
+- hipaa_endpoint (string): HIPAA compliance check endpoint
+
+Steps:
+1. Fetch document content from document store
+2. Run compliance checks in parallel:
+   2a. GDPR compliance check on document
+   2b. SOX compliance check on document
+   2c. HIPAA compliance check on document
+3. Aggregate all compliance results
+4. Generate compliance report with all findings
+
+Robustness:
+- Timeout: 30s per compliance check endpoint
+- Retries: Up to 3 attempts with exponential backoff on transient errors
+- Failure mode: If any check fails after retries, mark that compliance status as "unknown" and include error in report
+- Document store access: Requires authentication token, 15s retrieval timeout, log fetch failures
+
+Outputs:
+- gdpr_compliant (boolean): GDPR compliance status
+- sox_compliant (boolean): SOX compliance status
+- hipaa_compliant (boolean): HIPAA compliance status
+- overall_compliant (boolean): Overall compliance status (true only if all checks passed)
+- report_url (string): HTTPS URL to compliance report (S3 presigned URL, 7-day retention)
