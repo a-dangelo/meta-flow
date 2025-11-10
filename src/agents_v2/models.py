@@ -64,11 +64,12 @@ def _validate_safe_condition(v: str, context: str = "condition") -> str:
             f"{context.capitalize()} must contain a comparison operator: {', '.join(allowed_operators)}"
         )
 
-    # Check for variable references - should use {{var}}
+    # Check for variable references - should use {{var}} or {{obj.property}}
     if '$' in v or '{' in v:
-        if not re.search(r'\{\{[a-z_][a-z0-9_]*\}\}', v):
+        # Support both simple variables and nested properties
+        if not re.search(r'\{\{[a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*\}\}', v):
             raise ValueError(
-                f"Variable references in {context} must use {{{{variable_name}}}} syntax"
+                f"Variable references in {context} must use {{{{variable_name}}}} or {{{{object.property}}}} syntax"
             )
 
     return v
@@ -216,14 +217,15 @@ class ToolCall(BaseModel):
                     f"Invalid parameter key '{key}'. Must be snake_case."
                 )
 
-            # Validate variable references ({{var_name}})
+            # Validate variable references ({{var_name}} or {{obj.property}})
             if isinstance(value, str) and '{{' in value:
-                # Extract all variable references
-                refs = re.findall(r'\{\{([a-z_][a-z0-9_]*)\}\}', value)
+                # Extract all variable references - support nested properties
+                # Pattern: variable name optionally followed by .property (can repeat)
+                refs = re.findall(r'\{\{([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\}\}', value)
                 if not refs:
                     raise ValueError(
                         f"Invalid variable reference format in '{value}'. "
-                        f"Use {{{{variable_name}}}} syntax."
+                        f"Use {{{{variable_name}}}} or {{{{object.property}}}} syntax."
                     )
 
         return v

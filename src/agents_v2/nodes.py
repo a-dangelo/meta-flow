@@ -271,9 +271,20 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
                     available_vars = set()
                     # Add input variables
                     for inp in state['parsed_sections'].get('inputs', []):
-                        # Extract variable name from "var_name (type): description"
-                        if '(' in inp:
+                        # Extract variable name from either:
+                        # - "var_name (type): description" format
+                        # - "var_name: description" format
+                        if '(' in inp and ')' in inp:
+                            # Format with type in parentheses
                             var_name = inp.split('(')[0].strip()
+                        elif ':' in inp:
+                            # Simple format without parentheses
+                            var_name = inp.split(':')[0].strip()
+                        else:
+                            # Fallback: use whole string as variable name
+                            var_name = inp.strip()
+
+                        if var_name:  # Only add non-empty variable names
                             available_vars.add(var_name)
 
                     repaired_json = repair_gemini_json(llm_output, available_vars)
@@ -549,7 +560,8 @@ def generator_node(state: MetaAgentState) -> MetaAgentState:
 
         # Verify round-trip consistency
         parsed_back = WorkflowSpec.from_json(json_output)
-        assert parsed_back.to_dict() == state['workflow_spec']
+        if parsed_back.to_dict() != state['workflow_spec']:
+            raise ValueError("Round-trip validation failed: JSON serialization produced different structure")
 
         logger.info("✓ Generation complete")
 

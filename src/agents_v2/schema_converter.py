@@ -27,8 +27,11 @@ def pydantic_to_json_schema(model: Type[BaseModel], max_depth: int = 3) -> Dict[
         # Get base schema from Pydantic
         schema = model.model_json_schema()
 
-        # Apply Gemini-specific constraints
-        schema = _apply_gemini_constraints(schema, max_depth)
+        # Extract definitions for reference resolution
+        defs = schema.get("$defs", {})
+
+        # Apply Gemini-specific constraints with definitions for reference resolution
+        schema = _apply_gemini_constraints(schema, max_depth, defs=defs)
 
         # Add variable reference patterns
         schema = _add_variable_patterns(schema)
@@ -44,46 +47,143 @@ def pydantic_to_json_schema(model: Type[BaseModel], max_depth: int = 3) -> Dict[
         raise
 
 
-def _apply_gemini_constraints(schema: Dict[str, Any], max_depth: int, current_depth: int = 0) -> Dict[str, Any]:
+def _apply_gemini_constraints(schema: Dict[str, Any], max_depth: int, current_depth: int = 0, defs: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Apply Gemini-specific constraints to the schema.
 
-    - Flatten deeply nested structures beyond max_depth
-    - Remove unsupported JSON Schema features
+    - Only apply depth limits to actual object types, not primitive schemas
+    - Remove unsupported JSON Schema features (additionalProperties, $ref)
     - Ensure compatibility with Gemini's schema parser
+
+    Depth is only incremented when entering properties of object-type schemas.
     """
-    if current_depth >= max_depth:
-        # Replace deep nesting with empty object schema (depth limit reached)
+    # Handle non-dict types (shouldn't happen but be defensive)
+    if not isinstance(schema, dict):
+        return schema
+
+    # Handle $ref references first (Gemini doesn't support them)
+    if "$ref" in schema:
+        # Try to resolve the reference
+        if defs:
+            ref_path = schema["$ref"]
+            if ref_path.startswith("#/$defs/"):
+                ref_name = ref_path.replace("#/$defs/", "")
+                if ref_name in defs:
+                    # Inline the referenced schema and process it
+                    referenced_schema = defs[ref_name].copy()
+                    return _apply_gemini_constraints(referenced_schema, max_depth, current_depth, defs)
+
+        # If we can't resolve, use a placeholder with proper properties based on context
+        # This should be an object type since it's a workflow node
         return {
             "type": "object",
-            "additionalProperties": False,
-            "properties": {},
-            "description": "Nested workflow structure (depth limit reached)"
+            "properties": {
+                "type": {"type": "string", "description": "Workflow node type"}
+            },
+            "description": "Workflow node (reference resolved)"
         }
 
-    if isinstance(schema, dict):
-        # Remove $ref references (Gemini doesn't support them well)
-        if "$ref" in schema:
-            # This is a simplified approach - in production, properly resolve refs
-            schema = {"type": "object", "additionalProperties": False, "properties": {}}
+    # Determine the schema type
+    schema_type = schema.get("type")
+    is_object_type = False
 
-        # Process nested structures
-        for key, value in list(schema.items()):
-            if key == "properties" and isinstance(value, dict):
+    if isinstance(schema_type, list):
+        # Union type like ["object", "null"]
+        is_object_type = "object" in schema_type
+    elif schema_type == "object":
+        is_object_type = True
+
+    # Only apply depth limit to actual object types
+    if is_object_type and current_depth >= max_depth:
+        # Return a simple object schema without properties
+        # Gemini doesn't like empty properties, so we omit them entirely
+        return {
+            "type": "object",
+            "description": f"Nested object (depth limit {max_depth} reached)"
+        }
+
+    # For primitive types, preserve the schema but remove unsupported fields
+    primitive_types = ["string", "number", "integer", "boolean", "null", "array"]
+    is_primitive = schema_type in primitive_types or (
+        isinstance(schema_type, list) and
+        all(t in primitive_types for t in schema_type)
+    )
+
+    # Build result dict
+    result = {}
+
+    for key, value in schema.items():
+        # Skip Gemini-unsupported fields
+        if key == "additionalProperties":
+            # Log for debugging but don't include
+            if value not in [False, True]:
+                logger.debug(f"Skipping additionalProperties with value: {value}")
+            continue
+
+        # Process based on key type
+        if key == "properties" and isinstance(value, dict):
+            # Only increment depth if this is an object type's properties
+            if is_object_type:
+                # Entering object properties - increment depth
+                result[key] = {}
                 for prop_name, prop_schema in value.items():
-                    schema["properties"][prop_name] = _apply_gemini_constraints(
-                        prop_schema, max_depth, current_depth + 1
+                    result[key][prop_name] = _apply_gemini_constraints(
+                        prop_schema, max_depth, current_depth + 1, defs
                     )
-            elif key == "items":
-                schema["items"] = _apply_gemini_constraints(
-                    value, max_depth, current_depth + 1
-                )
-            elif isinstance(value, dict):
-                schema[key] = _apply_gemini_constraints(
-                    value, max_depth, current_depth
+            else:
+                # Non-object shouldn't have properties, but handle gracefully
+                logger.warning(f"Non-object type {schema_type} has properties - preserving")
+                result[key] = {}
+                for prop_name, prop_schema in value.items():
+                    result[key][prop_name] = _apply_gemini_constraints(
+                        prop_schema, max_depth, current_depth, defs
+                    )
+
+        elif key == "items":
+            # Array items - check if items are objects
+            if isinstance(value, dict):
+                item_type = value.get("type")
+                # Only increment depth if array contains objects
+                if item_type == "object" or (isinstance(item_type, list) and "object" in item_type):
+                    next_depth = current_depth + 1
+                else:
+                    next_depth = current_depth
+                result[key] = _apply_gemini_constraints(value, max_depth, next_depth, defs)
+            elif isinstance(value, list):
+                # Array of schemas (tuple validation)
+                result[key] = [
+                    _apply_gemini_constraints(item, max_depth, current_depth, defs)
+                    if isinstance(item, dict) else item
+                    for item in value
+                ]
+            else:
+                result[key] = value
+
+        elif key in ["anyOf", "oneOf", "allOf"] and isinstance(value, list):
+            # Union/composition operators - don't increment depth
+            result[key] = [
+                _apply_gemini_constraints(item, max_depth, current_depth, defs)
+                if isinstance(item, dict) else item
+                for item in value
+            ]
+
+        elif key in ["$defs", "definitions"] and isinstance(value, dict):
+            # Schema definitions - process without incrementing depth
+            result[key] = {}
+            for def_name, def_schema in value.items():
+                result[key][def_name] = _apply_gemini_constraints(
+                    def_schema, max_depth, current_depth, defs
                 )
 
-    return schema
+        elif isinstance(value, dict):
+            # Other nested dicts - don't increment depth (metadata, etc.)
+            result[key] = _apply_gemini_constraints(value, max_depth, current_depth, defs)
+
+        else:
+            # Primitive values, strings, numbers, etc.
+            result[key] = value
+
+    return result
 
 
 def _add_variable_patterns(schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -163,29 +263,56 @@ def generate_workflow_schema() -> Dict[str, Any]:
     This is optimized for the meta-agent use case.
     """
     # Import here to avoid circular dependency
-    from src.core.workflow_ast import WorkflowSpec
+    from src.agents_v2.models import WorkflowSpec
 
     # Get base schema
     schema = pydantic_to_json_schema(WorkflowSpec, max_depth=3)
+
+    # Validate the generated schema
+    validation_issues = validate_schema_for_gemini(schema)
+    if validation_issues:
+        # Log issues for debugging
+        logger.debug(f"Schema validation found {len(validation_issues)} issue(s):")
+        for issue in validation_issues:
+            if issue.startswith("ERROR"):
+                logger.error(f"  {issue}")
+            else:
+                logger.debug(f"  {issue}")
+
+        # Only fail on errors, not warnings
+        error_count = sum(1 for i in validation_issues if i.startswith("ERROR"))
+        if error_count > 0:
+            logger.warning(f"Schema has {error_count} error(s) that may cause Gemini API issues")
 
     # Add specific constraints for workflow types
     if "properties" in schema and "workflow" in schema["properties"]:
         workflow_schema = schema["properties"]["workflow"]
 
-        # Add enum constraint for workflow types
-        workflow_schema["properties"] = workflow_schema.get("properties", {})
-        workflow_schema["properties"]["type"] = {
-            "type": "string",
-            "enum": ["tool_call", "sequential", "conditional", "parallel", "orchestrator"],
-            "description": "The type of workflow node"
-        }
+        # Add enum constraint for workflow types if it's an object
+        if workflow_schema.get("type") == "object":
+            workflow_schema["properties"] = workflow_schema.get("properties", {})
+            workflow_schema["properties"]["type"] = {
+                "type": "string",
+                "enum": ["tool_call", "sequential", "conditional", "parallel", "orchestrator"],
+                "description": "The type of workflow node"
+            }
 
     # Add specific variable tracking
+    if "properties" not in schema:
+        schema["properties"] = {}
     schema["properties"]["_available_variables"] = {
         "type": "array",
         "items": {"type": "string"},
         "description": "Track available variables for validation"
     }
+
+    # Final validation
+    final_issues = validate_schema_for_gemini(schema)
+    error_count = sum(1 for i in final_issues if i.startswith("ERROR"))
+    if error_count > 0:
+        logger.error(f"Final schema still has {error_count} error(s) after processing")
+
+    logger.debug(f"Generated workflow schema with {len(schema.get('properties', {}))} top-level properties")
 
     return schema
 
@@ -194,29 +321,72 @@ def validate_schema_for_gemini(schema: Dict[str, Any]) -> List[str]:
     """
     Validate that a schema is compatible with Gemini's structured output.
 
+    Checks for:
+    - No additionalProperties field (Gemini doesn't support it)
+    - No $ref references (Gemini doesn't support them)
+    - No properties on non-object types
+    - Proper handling of primitive types
+
     Returns:
         List of warning/error messages (empty if valid)
     """
     issues = []
 
-    def check_schema(obj: Any, path: str = "") -> None:
+    def check_schema(obj: Any, path: str = "", parent_type: str = None) -> None:
         if isinstance(obj, dict):
-            # Check for unsupported features
-            if "$ref" in obj:
-                issues.append(f"{path}: Contains $ref (not fully supported)")
+            # Get the type of this schema node
+            obj_type = obj.get("type")
 
-            if "additionalProperties" in obj and obj["additionalProperties"] is True:
-                issues.append(f"{path}: Has additionalProperties=true (may cause issues)")
+            # CRITICAL: Check for properties on non-object types
+            if "properties" in obj:
+                if obj_type and obj_type != "object":
+                    # This is the bug we're fixing!
+                    if isinstance(obj_type, list):
+                        if "object" not in obj_type:
+                            issues.append(f"ERROR {path}: Has 'properties' but type is {obj_type} (not object)")
+                    else:
+                        issues.append(f"ERROR {path}: Has 'properties' but type is '{obj_type}' (not object)")
+                elif not obj_type and parent_type not in ["anyOf", "oneOf", "allOf"]:
+                    # No type specified and not a union
+                    issues.append(f"WARNING {path}: Has 'properties' but no type specified")
+
+            # Check for unsupported Gemini features
+            if "$ref" in obj:
+                issues.append(f"ERROR {path}: Contains $ref (Gemini doesn't support)")
+
+            if "additionalProperties" in obj:
+                issues.append(f"ERROR {path}: Contains additionalProperties (Gemini doesn't support)")
+
+            # Check for empty properties on what should be primitive types
+            if obj_type in ["string", "number", "integer", "boolean", "null"]:
+                if "properties" in obj and obj["properties"] == {}:
+                    issues.append(f"ERROR {path}: Primitive type '{obj_type}' has empty properties {{}}")
 
             # Check for deep nesting
             depth = path.count(".")
             if depth > 5:
-                issues.append(f"{path}: Deeply nested (depth={depth}), may cause issues")
+                issues.append(f"WARNING {path}: Deeply nested (depth={depth}), may cause issues")
 
-            # Recurse
+            # Recurse into nested structures
             for key, value in obj.items():
                 new_path = f"{path}.{key}" if path else key
-                check_schema(value, new_path)
+
+                # Track parent type for context
+                if key in ["anyOf", "oneOf", "allOf"]:
+                    parent = key
+                elif key == "properties" and obj_type == "object":
+                    parent = "object_properties"
+                elif key == "items":
+                    parent = "array_items"
+                else:
+                    parent = None
+
+                if isinstance(value, dict):
+                    check_schema(value, new_path, parent)
+                elif isinstance(value, list) and key in ["anyOf", "oneOf", "allOf"]:
+                    for i, item in enumerate(value):
+                        if isinstance(item, dict):
+                            check_schema(item, f"{new_path}[{i}]", key)
 
         elif isinstance(obj, list):
             for i, item in enumerate(obj):

@@ -112,7 +112,7 @@ try:
                     raw_spec=spec,
                     checkpointer=checkpointer,
                     llm_provider=args.provider,
-                    model_version=args.model
+                    model_version=model  # Use the determined model, not args.model
                 )
         else:
             # Run without output capture
@@ -120,7 +120,7 @@ try:
                 raw_spec=spec,
                 checkpointer=checkpointer,
                 llm_provider=args.provider,
-                model_version=args.model
+                model_version=model  # Use the determined model, not args.model
             )
 
     # Log the response (if logging enabled)

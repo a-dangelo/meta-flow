@@ -416,11 +416,13 @@ class TestLogger:
 
                 # Track recent failures
                 if status in ["failure", "error"]:
+                    error_msg = run.get("error_message", "Unknown error")
+                    error_msg = error_msg[:100] if error_msg else "Unknown error"
                     stats["recent_failures"].append({
                         "test_id": run.get("test_id"),
                         "provider": provider,
                         "model": model,
-                        "error": run.get("error_message", "Unknown error")[:100]
+                        "error": error_msg
                     })
 
         # Calculate average
