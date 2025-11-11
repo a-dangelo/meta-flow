@@ -270,10 +270,10 @@ class ConditionalWorkflow(BaseModel):
 
     type: Literal["conditional"] = Field(default="conditional", description="Workflow type")
     condition: str = Field(..., description="Boolean condition to evaluate")
-    if_branch: Union['ToolCall', 'SequentialWorkflow', 'ParallelWorkflow'] = Field(
+    if_branch: Union['ToolCall', 'SequentialWorkflow', 'ParallelWorkflow', 'ConditionalWorkflow'] = Field(
         ..., description="Workflow to execute if condition is true"
     )
-    else_branch: Optional[Union['ToolCall', 'SequentialWorkflow', 'ParallelWorkflow']] = Field(
+    else_branch: Optional[Union['ToolCall', 'SequentialWorkflow', 'ParallelWorkflow', 'ConditionalWorkflow']] = Field(
         default=None, description="Workflow to execute if condition is false"
     )
     description: Optional[str] = Field(default=None, description="Human-readable description")
@@ -483,10 +483,23 @@ class WorkflowSpec(BaseModel):
                         f"Available: {', '.join(sorted(available_vars))}"
                     )
 
-            # Validate branches (both inherit same variable context)
-            self._validate_node_references(node.if_branch, available_vars.copy())
+            # Validate branches and collect variables assigned in each
+            if_vars = available_vars.copy()
+            self._validate_node_references(node.if_branch, if_vars)
+
             if node.else_branch:
-                self._validate_node_references(node.else_branch, available_vars.copy())
+                else_vars = available_vars.copy()
+                self._validate_node_references(node.else_branch, else_vars)
+
+                # Variables assigned in BOTH branches are available after the conditional
+                # (intersection of new variables from each branch)
+                if_new_vars = if_vars - available_vars
+                else_new_vars = else_vars - available_vars
+                guaranteed_vars = if_new_vars & else_new_vars
+                available_vars.update(guaranteed_vars)
+            else:
+                # If there's no else branch, no variables are guaranteed to be assigned
+                pass
 
         elif isinstance(node, ParallelWorkflow):
             # All branches see same input variables

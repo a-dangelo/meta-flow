@@ -8,7 +8,7 @@ Nodes are composed into a LangGraph StateGraph with conditional routing.
 import re
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from .state import MetaAgentState, add_error_to_state
@@ -205,11 +205,26 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
             state.get('feedback_messages', [])
         )
 
+        # NEW: Add validation error feedback if retrying
+        if state.get('retry_count', 0) > 0 and state.get('validation_errors'):
+            validation_feedback = _format_validation_feedback(
+                state['validation_errors'],
+                state.get('last_generated_json')
+            )
+            prompt += f"\n{validation_feedback}"
+            logger.info(f"Added validation feedback for retry #{state['retry_count']}")
+
         # Determine if we should use structured output
         use_structured = (
             provider_name == 'gemini' and
             hasattr(provider, 'generate_structured') and
             state.get('use_structured_output', True)  # Can be disabled via state
+        )
+
+        # Check if we should use Claude's JSON generation
+        use_claude_json = (
+            provider_name in ('claude', 'anthropic') and
+            hasattr(provider, 'generate_json')
         )
 
         if use_structured:
@@ -240,7 +255,29 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
                 # Fall back to regular generation
                 use_structured = False
 
-        if not use_structured:
+        if use_claude_json and not use_structured:
+            # Use Claude's JSON generation capability
+            logger.info("Using Claude JSON generation mode")
+            try:
+                llm_output = provider.generate_json(
+                    system_prompt=_get_system_prompt(),
+                    user_prompt=prompt,
+                    temperature=0.1,
+                    max_tokens=4000,
+                    retry_on_invalid=True  # Claude will retry once if JSON is invalid
+                )
+                # Claude's generate_json returns validated JSON string
+                inferred_structure = json.loads(llm_output)
+                logger.info("Claude produced valid JSON")
+            except Exception as e:
+                logger.warning(f"Claude JSON generation failed: {e}")
+                raise ReasoningError(
+                    f"Claude JSON generation failed: {e}",
+                    llm_response=str(e),
+                    retry_count=state.get('retry_count', 0)
+                )
+
+        elif not use_structured and not use_claude_json:
             # Regular generation (original code)
             logger.debug(f"Calling LLM: {provider.get_model_name()}")
             llm_output = provider.generate(
@@ -319,6 +356,7 @@ def reasoner_node(state: MetaAgentState) -> MetaAgentState:
         return {
             **state,
             'inferred_structure': inferred_structure,
+            'last_generated_json': llm_output,  # NEW: Store for feedback on retry
             'confidence_score': confidence,
             'reasoning_trace': [f"LLM inference at {datetime.utcnow().isoformat()}"],
             'execution_status': 'validating',
@@ -426,6 +464,116 @@ MANDATORY RULES:
 3. One tool_call per numbered step - no exceptions
 
 Return ONLY valid JSON. No explanations. No markdown. No code fences."""
+
+
+def _format_validation_feedback(
+    validation_errors: List[str],
+    last_json: Optional[str] = None
+) -> str:
+    """
+    Format Pydantic validation errors into actionable feedback for LLM.
+
+    Groups errors by type (type fields, missing fields, variable refs)
+    and provides specific guidance for each category.
+    """
+    feedback_parts = [
+        "\nVALIDATION ERRORS FROM PREVIOUS ATTEMPT:",
+        "Your previous JSON had these issues:\n"
+    ]
+
+    # Group errors by pattern
+    type_errors = [e for e in validation_errors if "type: Input should be" in e]
+    field_errors = [e for e in validation_errors if "Field required" in e]
+    variable_errors = [e for e in validation_errors if "references undefined variable" in e]
+    other_errors = [e for e in validation_errors
+                   if e not in type_errors + field_errors + variable_errors]
+
+    # Check if this looks like a discriminated union error (many type errors across different workflow types)
+    has_many_type_errors = len(type_errors) > 10
+    is_discriminated_union_issue = has_many_type_errors and any(
+        "OrchestratorWorkflow" in e or "ConditionalWorkflow" in e or "ParallelWorkflow" in e
+        for e in type_errors
+    )
+
+    if is_discriminated_union_issue:
+        feedback_parts.extend([
+            "DISCRIMINATED UNION ERROR DETECTED:",
+            "Pydantic couldn't match your JSON to ANY valid workflow type.",
+            "This usually means the top-level 'workflow' field has the wrong structure.",
+            "",
+            "COMMON MISTAKES:",
+            "1. Missing or incorrect 'type' field at the top level of 'workflow'",
+            "2. Using wrong workflow type (e.g., sequential when should be orchestrator)",
+            "3. Nested structures missing their 'type' fields",
+            "",
+            "WORKFLOW TYPE SELECTION GUIDE:",
+            "- Use 'sequential' for: Linear steps without branching",
+            "- Use 'conditional' for: Single if/else decision",
+            "- Use 'orchestrator' for: Multiple routing rules with sub-workflows",
+            "- Use 'parallel' for: Concurrent execution of independent tasks",
+            "",
+            "ORCHESTRATOR STRUCTURE (if multiple 'if X route to Y' patterns):",
+            "{",
+            "  \"type\": \"orchestrator\",",
+            "  \"sub_workflows\": {",
+            "    \"workflow_name\": { \"type\": \"sequential\", \"steps\": [...] },",
+            "    ...",
+            "  },",
+            "  \"routing_rules\": [",
+            "    { \"condition\": \"...\", \"target_workflow\": \"workflow_name\" }",
+            "  ],",
+            "  \"default_workflow\": \"default_workflow_name\"",
+            "}",
+            "",
+            f"You generated {len(validation_errors)} errors. The top-level workflow type is WRONG.",
+            "Analyze the specification again and choose the correct workflow type."
+        ])
+    elif type_errors:
+        # Regular type errors
+        feedback_parts.extend([
+            "TYPE FIELD ERRORS:",
+            "CRITICAL: Every workflow node MUST have a 'type' field:",
+            "  - tool_call: {\"type\": \"tool_call\", \"tool_name\": \"...\", ...}",
+            "  - sequential: {\"type\": \"sequential\", \"steps\": [...]}",
+            "  - conditional: {\"type\": \"conditional\", \"condition\": \"...\", ...}",
+            "  - parallel: {\"type\": \"parallel\", \"branches\": [...]}",
+            "  - orchestrator: {\"type\": \"orchestrator\", \"sub_workflows\": {...}, \"routing_rules\": [...]}",
+            "\nYour errors:"
+        ])
+        for error in type_errors[:5]:
+            feedback_parts.append(f"  × {error}")
+
+    # Handle missing field errors
+    if field_errors and not is_discriminated_union_issue:
+        feedback_parts.extend([
+            "\nMISSING REQUIRED FIELDS:"
+        ])
+        for error in field_errors[:5]:
+            feedback_parts.append(f"  × {error}")
+
+    # Handle variable reference errors (common in parallel)
+    if variable_errors:
+        feedback_parts.extend([
+            "\nVARIABLE REFERENCE ERRORS:",
+            "CRITICAL: Use DOUBLE braces {{variable_name}}, NOT {{{{ref}}}}",
+            "Variables must be defined by previous steps' 'assigns_to' fields.",
+            "\nYour errors:"
+        ])
+        for error in variable_errors:
+            feedback_parts.append(f"  × {error}")
+
+    # Handle other errors
+    if other_errors and not is_discriminated_union_issue:
+        feedback_parts.append("\nOTHER ERRORS:")
+        for error in other_errors[:5]:
+            feedback_parts.append(f"  × {error}")
+
+    feedback_parts.extend([
+        "\nPlease regenerate the COMPLETE JSON fixing these specific issues.",
+        "Read the specification carefully and choose the RIGHT workflow type first."
+    ])
+
+    return "\n".join(feedback_parts)
 
 
 def _calculate_confidence(

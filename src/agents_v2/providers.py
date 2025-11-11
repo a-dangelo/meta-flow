@@ -1,7 +1,7 @@
 """
 LLM provider abstraction for meta-agent v2.
 
-Supports multiple LLM providers (AIMLAPI, Gemini) with a unified interface.
+Supports multiple LLM providers (AIMLAPI, Gemini, Anthropic Claude) with a unified interface.
 Includes structured output support for Gemini to ensure valid JSON generation.
 """
 
@@ -240,12 +240,181 @@ class GeminiProvider(LLMProvider):
             raise
 
 
+class ClaudeProvider(LLMProvider):
+    """Anthropic Claude provider with excellent JSON generation reliability."""
+
+    def __init__(self, model: Optional[str] = None):
+        """
+        Initialize Claude provider.
+
+        Args:
+            model: Model identifier (default: from ANTHROPIC_MODEL env var or claude-3-5-sonnet-20241022)
+
+        Raises:
+            ValueError: If ANTHROPIC_API_KEY environment variable is not set
+        """
+        self.api_key = os.getenv('ANTHROPIC_API_KEY')
+        if not self.api_key:
+            raise ValueError(
+                "Missing ANTHROPIC_API_KEY environment variable\n"
+                "Setup: export ANTHROPIC_API_KEY=your_key_here"
+            )
+
+        # Use provided model, or env var, or default to Sonnet 3.5
+        # Note: claude-3-5-sonnet recommended for JSON reliability
+        self.model = model or os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+
+        # Initialize client once (cache it)
+        try:
+            from anthropic import Anthropic
+            self._client = Anthropic(api_key=self.api_key)
+        except ImportError:
+            raise ImportError(
+                "anthropic package not installed\n"
+                "Install: pip install anthropic"
+            )
+
+        logger.info(f"Initialized Claude provider with model: {self.model}")
+
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.1,
+        max_tokens: int = 4000
+    ) -> str:
+        """Generate completion using Claude."""
+        logger.debug(f"Calling Claude with model: {self.model}")
+
+        try:
+            # Use cached client to create message
+            response = self._client.messages.create(
+                model=self.model,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+
+            if not response.content or not response.content[0].text:
+                error_msg = "Claude returned empty response"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            return response.content[0].text.strip()
+
+        except Exception as e:
+            logger.error(f"Claude API call failed: {e}")
+            raise
+
+    def get_model_name(self) -> str:
+        """Get model name."""
+        return f"claude:{self.model}"
+
+    def generate_json(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.1,
+        max_tokens: int = 4000,
+        retry_on_invalid: bool = True
+    ) -> str:
+        """
+        Generate JSON with Claude's natural JSON generation capability.
+
+        Claude has excellent JSON generation without needing structured output mode.
+        This method ensures the output is valid JSON, with optional retry.
+
+        Args:
+            system_prompt: System instructions
+            user_prompt: User message
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
+            retry_on_invalid: Whether to retry once if JSON is invalid
+
+        Returns:
+            Generated JSON string (validated)
+
+        Raises:
+            ValueError: If JSON generation fails after retry
+        """
+        logger.debug(f"Generating JSON with Claude model: {self.model}")
+
+        # Enhance prompts for JSON generation
+        json_system = f"""{system_prompt}
+
+IMPORTANT: You MUST respond with valid JSON only. Do not include any explanatory text, markdown formatting, or code blocks. Just the raw JSON object."""
+
+        json_user = f"""{user_prompt}
+
+Remember: Respond ONLY with a valid JSON object. No other text."""
+
+        # First attempt
+        response = self.generate(json_system, json_user, temperature, max_tokens)
+
+        # Try to parse the JSON
+        try:
+            # Clean up common issues
+            cleaned = response.strip()
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            if cleaned.startswith("```"):
+                cleaned = cleaned[3:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            cleaned = cleaned.strip()
+
+            # Validate JSON
+            json.loads(cleaned)
+            logger.debug("Claude generated valid JSON on first attempt")
+            return cleaned
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"First JSON generation attempt failed: {e}")
+
+            if not retry_on_invalid:
+                raise ValueError(f"Claude generated invalid JSON: {e}") from e
+
+            # Retry with error feedback
+            logger.debug("Retrying with error feedback")
+            retry_prompt = f"""The previous JSON generation failed with error:
+{str(e)}
+
+Original request:
+{user_prompt}
+
+Please generate the correct JSON object. Remember: ONLY valid JSON, no other text."""
+
+            retry_response = self.generate(json_system, retry_prompt, temperature, max_tokens)
+
+            # Clean and validate retry
+            cleaned_retry = retry_response.strip()
+            if cleaned_retry.startswith("```json"):
+                cleaned_retry = cleaned_retry[7:]
+            if cleaned_retry.startswith("```"):
+                cleaned_retry = cleaned_retry[3:]
+            if cleaned_retry.endswith("```"):
+                cleaned_retry = cleaned_retry[:-3]
+            cleaned_retry = cleaned_retry.strip()
+
+            try:
+                json.loads(cleaned_retry)
+                logger.debug("Claude generated valid JSON on retry")
+                return cleaned_retry
+            except json.JSONDecodeError as e2:
+                error_msg = f"Claude failed to generate valid JSON after retry: {e2}"
+                logger.error(error_msg)
+                raise ValueError(error_msg) from e2
+
+
 def create_provider(provider_name: str, model: Optional[str] = None) -> LLMProvider:
     """
     Factory function to create LLM provider.
 
     Args:
-        provider_name: Provider name ("aimlapi" or "gemini")
+        provider_name: Provider name ("aimlapi", "gemini", or "claude")
         model: Optional model override
 
     Returns:
@@ -255,7 +424,7 @@ def create_provider(provider_name: str, model: Optional[str] = None) -> LLMProvi
         ValueError: If provider_name is invalid or required env vars are missing
 
     Example:
-        >>> provider = create_provider("gemini")
+        >>> provider = create_provider("claude")
         >>> response = provider.generate("You are helpful", "What is 2+2?")
     """
     provider_name = provider_name.lower()
@@ -264,8 +433,10 @@ def create_provider(provider_name: str, model: Optional[str] = None) -> LLMProvi
         return AIMLAPIProvider(model=model or "x-ai/grok-4-fast-reasoning")
     elif provider_name == "gemini":
         return GeminiProvider(model=model)
+    elif provider_name in ("claude", "anthropic"):
+        return ClaudeProvider(model=model)
     else:
         raise ValueError(
             f"Unknown provider: {provider_name}\n"
-            f"Supported providers: aimlapi, gemini"
+            f"Supported providers: aimlapi, gemini, claude (or anthropic)"
         )

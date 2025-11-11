@@ -27,7 +27,8 @@ logging.basicConfig(
 parser = argparse.ArgumentParser(description='Test meta-agent v2 with a specification file')
 parser.add_argument('--spec', type=str, default='specs/examples/simple_sequential.txt',
                     help='Path to specification file (default: specs/examples/simple_sequential.txt)')
-parser.add_argument('--provider', type=str, default='aimlapi', choices=['aimlapi', 'gemini'],
+parser.add_argument('--provider', type=str, default='aimlapi',
+                    choices=['aimlapi', 'gemini', 'claude', 'anthropic'],
                     help='LLM provider to use (default: aimlapi)')
 parser.add_argument('--model', type=str, default=None,
                     help='Model name override (optional, reads from AIMLAPI_MODEL or GEMINI_MODEL env vars)')
@@ -49,7 +50,15 @@ except FileNotFoundError:
 if args.model:
     model = args.model
 else:
-    model = os.getenv(f"{args.provider.upper()}_MODEL", "default")
+    # Use appropriate environment variable based on provider
+    if args.provider == 'aimlapi':
+        model = os.getenv('AIMLAPI_MODEL', 'x-ai/grok-4-fast-reasoning')
+    elif args.provider == 'gemini':
+        model = os.getenv('GEMINI_MODEL', 'gemini-2.5-pro')
+    elif args.provider in ('claude', 'anthropic'):
+        model = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+    else:
+        model = 'default'
 
 print("=" * 60)
 print(f"Testing Meta-Agent v2 with: {args.spec}")
