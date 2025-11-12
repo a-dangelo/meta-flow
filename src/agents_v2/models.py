@@ -479,7 +479,7 @@ class WorkflowSpec(BaseModel):
             for ref in refs:
                 if ref not in available_vars:
                     raise ValueError(
-                        f"Condition references undefined variable '{{{{{{{{ref}}}}}}}}'. "
+                        f"Condition references undefined variable '{ref}'. "
                         f"Available: {', '.join(sorted(available_vars))}"
                     )
 
@@ -502,9 +502,25 @@ class WorkflowSpec(BaseModel):
                 pass
 
         elif isinstance(node, ParallelWorkflow):
-            # All branches see same input variables
+            # All branches see same input variables, validate each branch
+            branch_vars_list = []
+
             for branch in node.branches:
-                self._validate_node_references(branch, available_vars.copy())
+                # Track variables assigned in this branch
+                branch_vars = available_vars.copy()
+                self._validate_node_references(branch, branch_vars)
+
+                # Collect new variables from this branch
+                new_vars = branch_vars - available_vars
+                branch_vars_list.append(new_vars)
+
+            # Since ALL parallel branches execute (wait_for_all semantics),
+            # ALL variables assigned in ANY branch are available after parallel node
+            all_parallel_vars = set()
+            for branch_vars in branch_vars_list:
+                all_parallel_vars.update(branch_vars)
+
+            available_vars.update(all_parallel_vars)
 
         elif isinstance(node, OrchestratorWorkflow):
             # Validate each sub-workflow
