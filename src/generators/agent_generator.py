@@ -85,8 +85,13 @@ class AgentGenerator:
         """
         credentials = set()
         for inp in self.spec.inputs:
-            if inp.is_credential:
-                credentials.add(inp.name)
+            # Handle both dict and object formats
+            if isinstance(inp, dict):
+                if inp.get('is_credential', False):
+                    credentials.add(inp['name'])
+            else:
+                if inp.is_credential:
+                    credentials.add(inp.name)
         return credentials
 
     def _is_credential_parameter(self, param_name: str) -> bool:
@@ -172,11 +177,15 @@ class AgentGenerator:
             ])
 
             for inp in self.spec.inputs:
-                if inp.is_credential:
-                    env_var = inp.name.upper()
-                    desc = inp.description or "Authentication credential"
+                # Handle both dict and object formats
+                is_cred = inp.get('is_credential', False) if isinstance(inp, dict) else inp.is_credential
+                if is_cred:
+                    name = inp['name'] if isinstance(inp, dict) else inp.name
+                    desc = inp.get('description') if isinstance(inp, dict) else inp.description
+                    env_var = name.upper()
+                    desc_text = desc or "Authentication credential"
                     lines.extend([
-                        f"- {env_var}: {desc}",
+                        f"- {env_var}: {desc_text}",
                         f"  Setup: export {env_var}=<your-value-here>",
                         ""
                     ])
@@ -259,7 +268,10 @@ class AgentGenerator:
 
         # Document input parameters
         for inp in self.spec.inputs:
-            lines.append(f'        {inp.name}: {inp.description or inp.type}')
+            name = inp['name'] if isinstance(inp, dict) else inp.name
+            desc = inp.get('description') if isinstance(inp, dict) else inp.description
+            typ = inp.get('type') if isinstance(inp, dict) else inp.type
+            lines.append(f'        {name}: {desc or typ}')
 
         lines.extend([
             '    ',
@@ -276,8 +288,9 @@ class AgentGenerator:
 
         # Add input validation
         for inp in self.spec.inputs:
-            lines.append(f'        if "{inp.name}" not in inputs:')
-            lines.append(f'            raise ValueError("Missing required input: {inp.name}")')
+            name = inp['name'] if isinstance(inp, dict) else inp.name
+            lines.append(f'        if "{name}" not in inputs:')
+            lines.append(f'            raise ValueError("Missing required input: {name}")')
 
         lines.extend([
             '        ',
@@ -298,8 +311,11 @@ class AgentGenerator:
         ])
 
         if self.spec.outputs:
+            def get_output_name(out):
+                return out['name'] if isinstance(out, dict) else out.name
+
             output_dict = ', '.join(
-                f'"{out.name}": self.context.get("{out.name}")'
+                f'"{get_output_name(out)}": self.context.get("{get_output_name(out)}")'
                 for out in self.spec.outputs
             )
             lines.append(f'        return {{{output_dict}}}')
@@ -507,15 +523,17 @@ class AgentGenerator:
             condition_code = self._generate_condition_eval(rule.condition)
             lines.append(f"{indent_str}{keyword} {condition_code}:")
 
-            # Get the target workflow
-            target_workflow = node.sub_workflows[rule.target_workflow]
+            # Get the target workflow by name (fixed: was rule.target_workflow)
+            target_workflow = node.sub_workflows[rule.workflow_name]
             workflow_code = self._generate_workflow_node(target_workflow, indent + 1)
             lines.append(workflow_code)
 
         # Generate default workflow if present
         if node.default_workflow:
             lines.append(f"{indent_str}else:")
-            default_code = self._generate_workflow_node(node.default_workflow, indent + 1)
+            # Fixed: default_workflow is a string (workflow name), not a workflow object
+            default_wf = node.sub_workflows[node.default_workflow]
+            default_code = self._generate_workflow_node(default_wf, indent + 1)
             lines.append(default_code)
 
         return "\n".join(lines)
@@ -632,11 +650,13 @@ class AgentGenerator:
         ]
 
         for inp in self.spec.inputs:
-            if inp.is_credential:
-                example = f"<{inp.name}_from_env>"
+            name = inp['name'] if isinstance(inp, dict) else inp.name
+            is_cred = inp.get('is_credential', False) if isinstance(inp, dict) else inp.is_credential
+            if is_cred:
+                example = f"<{name}_from_env>"
             else:
-                example = f"example_{inp.name}"
-            lines.append(f'        "{inp.name}": "{example}",')
+                example = f"example_{name}"
+            lines.append(f'        "{name}": "{example}",')
 
         lines.extend([
             '    }',
