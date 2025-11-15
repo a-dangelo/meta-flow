@@ -170,7 +170,9 @@ def create_initial_state(
     if model_version is None:
         if llm_provider == "gemini":
             model_version = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
-        else:
+        elif llm_provider in ("claude", "anthropic"):
+            model_version = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        else:  # aimlapi or other
             model_version = os.getenv("AIMLAPI_MODEL", "x-ai/grok-4-fast-reasoning")
 
     return MetaAgentState(

@@ -260,9 +260,8 @@ class ClaudeProvider(LLMProvider):
                 "Setup: export ANTHROPIC_API_KEY=your_key_here"
             )
 
-        # Use provided model, or env var, or default to Sonnet 3.5
-        # Note: claude-3-5-sonnet recommended for JSON reliability
-        self.model = model or os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+        # Use provided model, or env var, or default to Haiku 4.5
+        self.model = model or os.getenv('ANTHROPIC_MODEL', 'claude-haiku-4-5')
 
         # Initialize client once (cache it)
         try:

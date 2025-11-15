@@ -1,0 +1,66 @@
+{
+  "name": "data_processing_pipeline",
+  "description": "Simple sequential workflow for processing customer data",
+  "version": "1.0.0",
+  "inputs": [
+    {
+      "name": "customer_id",
+      "type": "string",
+      "description": "The customer ID to process",
+      "is_credential": false
+    },
+    {
+      "name": "database_url",
+      "type": "string",
+      "description": "Database connection URL",
+      "is_credential": true
+    }
+  ],
+  "outputs": [],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "type": "tool_call",
+        "tool_name": "fetch_customer_data",
+        "parameters": {
+          "customer_id": "{{customer_id}}",
+          "database_url": "{{database_url}}"
+        },
+        "assigns_to": "customer_data",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "validate_customer_data",
+        "parameters": {
+          "customer_data": "{{customer_data}}"
+        },
+        "assigns_to": "validation_result",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "calculate_customer_lifetime_value",
+        "parameters": {
+          "customer_data": "{{customer_data}}"
+        },
+        "assigns_to": "lifetime_value",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "update_customer_record",
+        "parameters": {
+          "customer_id": "{{customer_id}}",
+          "lifetime_value": "{{lifetime_value}}",
+          "database_url": "{{database_url}}"
+        },
+        "assigns_to": "update_status",
+        "description": null
+      }
+    ],
+    "description": null
+  },
+  "metadata": {}
+}
