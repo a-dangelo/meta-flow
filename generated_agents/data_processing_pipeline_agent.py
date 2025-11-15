@@ -10,7 +10,7 @@ This agent requires the following environment variables:
 - DATABASE_URL: Database connection URL
   Setup: export DATABASE_URL=<your-value-here>
 
-Generated: 2025-11-15T09:45:02.449516
+Generated: 2025-11-15T10:36:45.332929
 Version: 1.0.0
 """
 
