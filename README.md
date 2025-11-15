@@ -30,11 +30,7 @@ python -m src.cli.complete_pipeline specs/examples/simple_sequential.txt
 ## Prerequisites
 
 - **Python**: 3.12 or higher.
-- **Git**: For repository cloning.
 - **LLM API Key**: Every provider lets you get their own API key. For example for Anthropic API keys, you an obtain one from [Anthropic Console](https://console.anthropic.com/).
-- **Operating System**: Linux, macOS, or Windows with WSL.
-- **RAM**: 4GB minimum.
-- **Disk Space**: 500MB.
 
 ## Installation
 
@@ -261,15 +257,6 @@ venv\Scripts\activate     # Windows
 python -c "from anthropic import Anthropic; c=Anthropic(); print('API key valid')"
 ```
 
-## Approach
-
-The system employs:
-1. **Clean Architecture**: Clear separation between LLM reasoning and code generation phases
-2. **Type Safety**: Pydantic models ensure data integrity throughout the pipeline
-3. **Security by Design**: Automated detection and handling of credentials
-4. **Extensible Patterns**: Straightforward addition of new workflow types
-5. **Self-Documenting Code**: Clear naming conventions and structured output
-
 ## License
 
 This project is licensed under **AGPL-3.0** - see the [LICENSE](LICENSE) file for details.
@@ -281,4 +268,4 @@ This project is licensed under **AGPL-3.0** - see the [LICENSE](LICENSE) file fo
 
 ---
 
-**Note**: This is a proof-of-concept developed in one week to demonstrate the technical feasibility of automated agent generation. While functional and well-tested within its scope, production deployment would require additional hardening, observability, and scale testing.
+**Note**: This is a proof-of-concept developed to demonstrate the technical feasibility of automated agent generation. While functional and well-tested within its scope, production deployment would require additional hardening, observability, and scale testing.
