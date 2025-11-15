@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 from langgraph.checkpoint.sqlite import SqliteSaver
-from src.agents_v2 import run_meta_agent
-from src.agents_v2.test_logger import get_test_logger
+from src.agents import run_meta_agent
+from src.agents.test_logger import get_test_logger
 
 # Load environment variables from .env file
 load_dotenv()

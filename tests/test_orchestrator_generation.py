@@ -14,7 +14,7 @@ import py_compile
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.agents_v2.models import WorkflowSpec
+from src.agents.models import WorkflowSpec
 from src.generators.agent_generator import AgentGenerator
 
 def test_orchestrator_from_haiku_json():
@@ -101,7 +101,7 @@ def test_orchestrator_from_haiku_json():
 def test_true_orchestrator_workflow():
     """Test code generation for true OrchestratorWorkflow type with routing_rules."""
 
-    from src.agents_v2.models import (
+    from src.agents.models import (
         WorkflowSpec,
         OrchestratorWorkflow,
         RoutingRule,

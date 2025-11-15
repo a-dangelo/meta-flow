@@ -16,7 +16,7 @@ import re
 import json
 
 # Import Phase 1 models
-from src.agents_v2.models import (
+from src.agents.models import (
     WorkflowSpec,
     WorkflowInput,
     WorkflowOutput,

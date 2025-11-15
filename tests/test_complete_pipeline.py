@@ -167,7 +167,7 @@ class TestOutputGeneration:
 
     def test_save_outputs_with_json(self, tmp_path, logger):
         """Test saving outputs with JSON enabled."""
-        from src.agents_v2.models import WorkflowSpec, SequentialWorkflow, ToolCall
+        from src.agents.models import WorkflowSpec, SequentialWorkflow, ToolCall
 
         # Create a simple workflow spec
         spec = WorkflowSpec(
@@ -209,7 +209,7 @@ class TestOutputGeneration:
 
     def test_save_outputs_without_json(self, tmp_path, logger):
         """Test saving outputs with JSON disabled."""
-        from src.agents_v2.models import WorkflowSpec, SequentialWorkflow, ToolCall
+        from src.agents.models import WorkflowSpec, SequentialWorkflow, ToolCall
 
         spec = WorkflowSpec(
             name="test_workflow_no_json",

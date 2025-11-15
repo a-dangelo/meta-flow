@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from src.agents_v2.models import WorkflowSpec
+from src.agents.models import WorkflowSpec
 from src.generators.agent_generator import AgentGenerator
 
 

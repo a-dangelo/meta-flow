@@ -23,9 +23,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Phase 1: Meta-agent
-from src.agents_v2.graph import create_meta_agent_graph
-from src.agents_v2.state import create_initial_state
-from src.agents_v2.models import WorkflowSpec
+from src.agents.graph import create_meta_agent_graph
+from src.agents.state import create_initial_state
+from src.agents.models import WorkflowSpec
 
 # Phase 2: Code generator
 from src.generators.agent_generator import AgentGenerator

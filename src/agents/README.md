@@ -18,7 +18,7 @@ export AIMLAPI_API_KEY=your_api_key_here
 
 ```python
 from langgraph.checkpoint.sqlite import SqliteSaver
-from src.agents_v2 import run_meta_agent
+from src.agents import run_meta_agent
 
 # Create checkpointer for state persistence
 checkpointer = SqliteSaver.from_conn_string(":memory:")
@@ -256,7 +256,7 @@ result = run_meta_agent(
 ### Accessing Individual Nodes
 
 ```python
-from src.agents_v2 import (
+from src.agents import (
     parser_node,
     reasoner_node,
     validator_node,
@@ -273,7 +273,7 @@ print(parsed_state['parsed_sections'])
 ### Creating Custom Graph
 
 ```python
-from src.agents_v2.graph import create_meta_agent_graph
+from src.agents.graph import create_meta_agent_graph
 
 # Create graph with custom checkpointer
 graph = create_meta_agent_graph(
@@ -327,7 +327,7 @@ pytest tests/test_models_v2.py tests/test_meta_agent_v2.py -v
 pytest tests/test_models_v2.py -v
 
 # Run with coverage
-pytest tests/ --cov=src.agents_v2 --cov-report=html
+pytest tests/ --cov=src.agents --cov-report=html
 ```
 
 ## Performance

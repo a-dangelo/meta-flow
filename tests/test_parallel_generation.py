@@ -14,7 +14,7 @@ import py_compile
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.agents_v2.models import WorkflowSpec
+from src.agents.models import WorkflowSpec
 from src.generators.agent_generator import AgentGenerator
 
 def test_parallel_from_haiku_json():

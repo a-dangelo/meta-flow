@@ -13,7 +13,7 @@ Tests cover:
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
-from src.agents_v2.models import (
+from src.agents.models import (
     WorkflowInput,
     WorkflowOutput,
     ToolCall,

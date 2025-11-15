@@ -263,7 +263,7 @@ def generate_workflow_schema() -> Dict[str, Any]:
     This is optimized for the meta-agent use case.
     """
     # Import here to avoid circular dependency
-    from src.agents_v2.models import WorkflowSpec
+    from src.agents.models import WorkflowSpec
 
     # Get base schema
     schema = pydantic_to_json_schema(WorkflowSpec, max_depth=3)

@@ -9,7 +9,7 @@ import pytest
 import os
 from langgraph.checkpoint.sqlite import SqliteSaver
 
-from src.agents_v2 import (
+from src.agents import (
     run_meta_agent,
     create_meta_agent_graph,
     parser_node,
@@ -184,7 +184,7 @@ def test_retry_logic_with_validation_errors():
     """Test that validation errors trigger retry."""
     # This would require mocking the LLM to return invalid JSON,
     # which is complex. For now, we verify the logic exists.
-    from src.agents_v2.state import should_retry
+    from src.agents.state import should_retry
 
     # State with validation errors, low retry count
     state = {
@@ -207,7 +207,7 @@ def test_retry_logic_with_validation_errors():
 
 def test_confidence_scoring():
     """Test confidence score calculation."""
-    from src.agents_v2.nodes import _calculate_confidence
+    from src.agents.nodes import _calculate_confidence
 
     # Complete structure
     complete = {
