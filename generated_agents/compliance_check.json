@@ -1,0 +1,121 @@
+{
+  "name": "compliance_check",
+  "description": "Run multiple compliance checks in parallel for faster processing",
+  "version": "1.0.0",
+  "inputs": [
+    {
+      "name": "document_id",
+      "type": "string",
+      "description": "Document to check for compliance",
+      "is_credential": false
+    },
+    {
+      "name": "compliance_api_key",
+      "type": "string",
+      "description": "API key for compliance service (SECRET: must be from environment variable or secrets manager, never hardcoded)",
+      "is_credential": true
+    },
+    {
+      "name": "gdpr_endpoint",
+      "type": "string",
+      "description": "GDPR compliance check endpoint",
+      "is_credential": false
+    },
+    {
+      "name": "sox_endpoint",
+      "type": "string",
+      "description": "SOX compliance check endpoint",
+      "is_credential": false
+    },
+    {
+      "name": "hipaa_endpoint",
+      "type": "string",
+      "description": "HIPAA compliance check endpoint",
+      "is_credential": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "compliance_report",
+      "type": "string",
+      "description": "Compliance report with all findings"
+    }
+  ],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "type": "tool_call",
+        "tool_name": "fetch_document_content",
+        "parameters": {
+          "document_id": "{{document_id}}"
+        },
+        "assigns_to": "document_content",
+        "description": null
+      },
+      {
+        "type": "parallel",
+        "branches": [
+          {
+            "type": "tool_call",
+            "tool_name": "check_gdpr_compliance",
+            "parameters": {
+              "document_content": "{{document_content}}",
+              "endpoint": "{{gdpr_endpoint}}",
+              "api_key": "{{compliance_api_key}}"
+            },
+            "assigns_to": "gdpr_result",
+            "description": null
+          },
+          {
+            "type": "tool_call",
+            "tool_name": "check_sox_compliance",
+            "parameters": {
+              "document_content": "{{document_content}}",
+              "endpoint": "{{sox_endpoint}}",
+              "api_key": "{{compliance_api_key}}"
+            },
+            "assigns_to": "sox_result",
+            "description": null
+          },
+          {
+            "type": "tool_call",
+            "tool_name": "check_hipaa_compliance",
+            "parameters": {
+              "document_content": "{{document_content}}",
+              "endpoint": "{{hipaa_endpoint}}",
+              "api_key": "{{compliance_api_key}}"
+            },
+            "assigns_to": "hipaa_result",
+            "description": null
+          }
+        ],
+        "wait_for_all": true,
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "aggregate_compliance_results",
+        "parameters": {
+          "gdpr_result": "{{gdpr_result}}",
+          "sox_result": "{{sox_result}}",
+          "hipaa_result": "{{hipaa_result}}"
+        },
+        "assigns_to": "aggregated_results",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "generate_compliance_report",
+        "parameters": {
+          "aggregated_results": "{{aggregated_results}}",
+          "document_id": "{{document_id}}"
+        },
+        "assigns_to": "compliance_report",
+        "description": null
+      }
+    ],
+    "description": null
+  },
+  "metadata": {}
+}

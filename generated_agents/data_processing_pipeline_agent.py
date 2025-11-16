@@ -10,11 +10,12 @@ This agent requires the following environment variables:
 - DATABASE_URL: Database connection URL
   Setup: export DATABASE_URL=<your-value-here>
 
-Generated: 2025-11-15T10:36:45.332929
+Generated: 2025-11-16T09:34:48.486447
 Version: 1.0.0
 """
 
 import os
+import asyncio
 from typing import Any, Dict, Optional
 
 

@@ -151,19 +151,19 @@ def test_poc_limitation_documented():
     with open(agent_file, 'r') as f:
         code = f.read()
 
-    print("\nChecking for PoC limitation documentation...")
+    print("\nChecking for async parallel execution implementation...")
 
-    # Check for TODO comment
-    if "TODO: Parallel execution not implemented" in code:
-        print("✅ TODO comment found: Parallel execution limitation documented")
+    # Check for asyncio import
+    if "import asyncio" in code:
+        print("✅ asyncio import found")
     else:
-        print("⚠️  TODO comment not found")
+        print("⚠️  asyncio import not found")
 
-    # Check for sequential execution note
-    if "Executing branches sequentially" in code:
-        print("✅ Sequential execution note found")
+    # Check for async execution pattern
+    if "async def _parallel_executor():" in code or "asyncio.gather" in code:
+        print("✅ Async parallel execution pattern found")
     else:
-        print("⚠️  Sequential execution note not found")
+        print("⚠️  Async parallel execution pattern not found")
 
     # Check for branch comments
     branch_comments = ["# Branch 1", "# Branch 2", "# Branch 3"]

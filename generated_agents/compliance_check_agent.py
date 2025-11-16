@@ -10,11 +10,12 @@ This agent requires the following environment variables:
 - COMPLIANCE_API_KEY: API key for compliance service (SECRET: must be from environment variable or secrets manager, never hardcoded)
   Setup: export COMPLIANCE_API_KEY=<your-value-here>
 
-Generated: 2025-11-14T16:21:29.796911
+Generated: 2025-11-16T09:19:10.067908
 Version: 1.0.0
 """
 
 import os
+import asyncio
 from typing import Any, Dict, Optional
 
 
@@ -63,14 +64,22 @@ class ComplianceCheckAgent:
         
             # Execute workflow
             self.context['document_content'] = self.fetch_document_content(document_id=self.context['document_id'])
-            # TODO: Parallel execution not implemented (PoC limitation)
-            # Executing branches sequentially:
-            # Branch 1
-            self.context['gdpr_result'] = self.check_gdpr_compliance(document_content=self.context['document_content'], gdpr_endpoint=self.context['gdpr_endpoint'], compliance_api_key=self.context['compliance_api_key'])
-            # Branch 2
-            self.context['sox_result'] = self.check_sox_compliance(document_content=self.context['document_content'], sox_endpoint=self.context['sox_endpoint'], compliance_api_key=self.context['compliance_api_key'])
-            # Branch 3
-            self.context['hipaa_result'] = self.check_hipaa_compliance(document_content=self.context['document_content'], hipaa_endpoint=self.context['hipaa_endpoint'], compliance_api_key=self.context['compliance_api_key'])
+            # Execute branches concurrently using asyncio
+            async def _parallel_executor():
+                async def branch_1():
+                    self.context['gdpr_result'] = self.check_gdpr_compliance(document_content=self.context['document_content'], endpoint=self.context['gdpr_endpoint'], api_key=self.context['compliance_api_key'])
+
+                async def branch_2():
+                    self.context['sox_result'] = self.check_sox_compliance(document_content=self.context['document_content'], endpoint=self.context['sox_endpoint'], api_key=self.context['compliance_api_key'])
+
+                async def branch_3():
+                    self.context['hipaa_result'] = self.check_hipaa_compliance(document_content=self.context['document_content'], endpoint=self.context['hipaa_endpoint'], api_key=self.context['compliance_api_key'])
+
+                # Wait for all branches to complete
+                await asyncio.gather(branch_1(), branch_2(), branch_3())
+
+            # Run parallel execution
+            asyncio.run(_parallel_executor())
             self.context['aggregated_results'] = self.aggregate_compliance_results(gdpr_result=self.context['gdpr_result'], sox_result=self.context['sox_result'], hipaa_result=self.context['hipaa_result'])
             self.context['compliance_report'] = self.generate_compliance_report(aggregated_results=self.context['aggregated_results'], document_id=self.context['document_id'])
         
@@ -97,11 +106,11 @@ class ComplianceCheckAgent:
     def check_gdpr_compliance(self, **kwargs) -> Any:
         """Tool: check_gdpr_compliance - Uses credentials from environment variables"""
     
-        compliance_api_key = os.getenv('COMPLIANCE_API_KEY')
-        if not compliance_api_key:
+        api_key = os.getenv('API_KEY')
+        if not api_key:
             raise ValueError(
-                "Missing COMPLIANCE_API_KEY environment variable\n"
-                "Setup: export COMPLIANCE_API_KEY=<your-value-here>"
+                "Missing API_KEY environment variable\n"
+                "Setup: export API_KEY=<your-value-here>"
             )
     
         # TODO: Implement actual tool logic with credentials
@@ -110,11 +119,11 @@ class ComplianceCheckAgent:
     def check_hipaa_compliance(self, **kwargs) -> Any:
         """Tool: check_hipaa_compliance - Uses credentials from environment variables"""
     
-        compliance_api_key = os.getenv('COMPLIANCE_API_KEY')
-        if not compliance_api_key:
+        api_key = os.getenv('API_KEY')
+        if not api_key:
             raise ValueError(
-                "Missing COMPLIANCE_API_KEY environment variable\n"
-                "Setup: export COMPLIANCE_API_KEY=<your-value-here>"
+                "Missing API_KEY environment variable\n"
+                "Setup: export API_KEY=<your-value-here>"
             )
     
         # TODO: Implement actual tool logic with credentials
@@ -123,11 +132,11 @@ class ComplianceCheckAgent:
     def check_sox_compliance(self, **kwargs) -> Any:
         """Tool: check_sox_compliance - Uses credentials from environment variables"""
     
-        compliance_api_key = os.getenv('COMPLIANCE_API_KEY')
-        if not compliance_api_key:
+        api_key = os.getenv('API_KEY')
+        if not api_key:
             raise ValueError(
-                "Missing COMPLIANCE_API_KEY environment variable\n"
-                "Setup: export COMPLIANCE_API_KEY=<your-value-here>"
+                "Missing API_KEY environment variable\n"
+                "Setup: export API_KEY=<your-value-here>"
             )
     
         # TODO: Implement actual tool logic with credentials

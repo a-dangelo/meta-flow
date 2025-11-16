@@ -28,7 +28,7 @@ def create_meta_agent_graph(
     checkpointer: SqliteSaver = None
 ) -> StateGraph:
     """
-    Create the LangGraph state machine for meta-agent v2.
+    Create the LangGraph state machine for meta-agent.
 
     Args:
         checkpointer: SQLite saver for checkpointing (optional)

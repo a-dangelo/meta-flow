@@ -207,6 +207,7 @@ class AgentGenerator:
         """
         imports = [
             "import os",
+            "import asyncio",
             "from typing import Any, Dict, Optional"
         ]
         return "\n".join(imports)
@@ -492,20 +493,41 @@ class AgentGenerator:
         return result
 
     def _generate_parallel_code(self, node: ParallelWorkflow, indent: int) -> str:
-        """Generate code for parallel workflow (PoC: sequential execution)."""
+        """Generate code for parallel workflow using asyncio.gather()."""
         lines = []
         indent_str = "    " * indent
 
-        lines.append(f"{indent_str}# TODO: Parallel execution not implemented (PoC limitation)")
-        lines.append(f"{indent_str}# Executing branches sequentially:")
-
         if node.description:
-            lines.append(f"{indent_str}# {node.description}")
+            lines.append(f"{indent_str}# Parallel: {node.description}")
 
+        lines.append(f"{indent_str}# Execute branches concurrently using asyncio")
+        lines.append(f"{indent_str}async def _parallel_executor():")
+
+        # Generate async wrapper for each branch
         for i, branch in enumerate(node.branches, 1):
-            lines.append(f"{indent_str}# Branch {i}")
-            branch_code = self._generate_workflow_node(branch, indent)
+            lines.append(f"{indent_str}    async def branch_{i}():")
+            # Generate the branch code with additional indentation
+            branch_code = self._generate_workflow_node(branch, indent + 2)
             lines.append(branch_code)
+            lines.append("")  # Blank line between branches
+
+        # Generate gather or wait based on wait_for_all flag
+        if node.wait_for_all:
+            branch_calls = ", ".join(f"branch_{i}()" for i in range(1, len(node.branches) + 1))
+            lines.append(f"{indent_str}    # Wait for all branches to complete")
+            lines.append(f"{indent_str}    await asyncio.gather({branch_calls})")
+        else:
+            # wait_for_all is False - wait for first to complete
+            lines.append(f"{indent_str}    # Wait for first branch to complete")
+            tasks_list = ", ".join(f"branch_{i}()" for i in range(1, len(node.branches) + 1))
+            lines.append(f"{indent_str}    tasks = [{tasks_list}]")
+            lines.append(f"{indent_str}    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)")
+            lines.append(f"{indent_str}    for task in pending:")
+            lines.append(f"{indent_str}        task.cancel()")
+
+        lines.append("")
+        lines.append(f"{indent_str}# Run parallel execution")
+        lines.append(f"{indent_str}asyncio.run(_parallel_executor())")
 
         return "\n".join(lines)
 
