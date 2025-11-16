@@ -1,0 +1,101 @@
+{
+  "name": "expense_approval",
+  "description": "Routes expense reports with AI-powered fraud detection",
+  "version": "1.0.0",
+  "inputs": [
+    {
+      "name": "expense_id",
+      "type": "string",
+      "description": "Expense record ID",
+      "is_credential": false
+    },
+    {
+      "name": "amount",
+      "type": "number",
+      "description": "Amount in USD",
+      "is_credential": false
+    },
+    {
+      "name": "employee_level",
+      "type": "string",
+      "description": "Employee seniority level",
+      "is_credential": false
+    },
+    {
+      "name": "fraud_api_key",
+      "type": "string",
+      "description": "API key for fraud detection service",
+      "is_credential": true
+    }
+  ],
+  "outputs": [],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "type": "tool_call",
+        "tool_name": "fetch_expense_details",
+        "parameters": {
+          "expense_id": "{{expense_id}}"
+        },
+        "assigns_to": "expense_details",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "analyze_expense_fraud_risk",
+        "parameters": {
+          "expense_id": "{{expense_id}}",
+          "amount": "{{amount}}",
+          "fraud_api_key": "{{fraud_api_key}}"
+        },
+        "assigns_to": "fraud_analysis",
+        "description": null
+      },
+      {
+        "type": "conditional",
+        "condition": "{{amount}} > 10000 or {{fraud_analysis}} > 0.7",
+        "if_branch": {
+          "type": "tool_call",
+          "tool_name": "route_to_senior_manager_review",
+          "parameters": {
+            "expense_id": "{{expense_id}}",
+            "amount": "{{amount}}",
+            "fraud_score": "{{fraud_analysis}}"
+          },
+          "assigns_to": "approval_result",
+          "description": null
+        },
+        "else_branch": {
+          "type": "sequential",
+          "steps": [
+            {
+              "type": "tool_call",
+              "tool_name": "auto_approve_expense",
+              "parameters": {
+                "expense_id": "{{expense_id}}",
+                "amount": "{{amount}}"
+              },
+              "assigns_to": "approval_result",
+              "description": null
+            },
+            {
+              "type": "tool_call",
+              "tool_name": "send_confirmation_email",
+              "parameters": {
+                "expense_id": "{{expense_id}}",
+                "amount": "{{amount}}"
+              },
+              "assigns_to": "email_status",
+              "description": null
+            }
+          ],
+          "description": null
+        },
+        "description": null
+      }
+    ],
+    "description": null
+  },
+  "metadata": {}
+}

@@ -10,11 +10,12 @@ This agent requires the following environment variables:
 - FRAUD_API_KEY: API key for fraud detection service
   Setup: export FRAUD_API_KEY=<your-value-here>
 
-Generated: 2025-11-12T21:56:59.911606
+Generated: 2025-11-16T09:53:39.809008
 Version: 1.0.0
 """
 
 import os
+import asyncio
 from typing import Any, Dict, Optional
 
 

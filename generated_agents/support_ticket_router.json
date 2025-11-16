@@ -1,0 +1,134 @@
+{
+  "name": "support_ticket_router",
+  "description": "Intelligently route support tickets based on priority and type",
+  "version": "1.0.0",
+  "inputs": [
+    {
+      "name": "ticket_id",
+      "type": "string",
+      "description": "Support ticket identifier",
+      "is_credential": false
+    },
+    {
+      "name": "customer_tier",
+      "type": "string",
+      "description": "Customer tier (bronze, silver, gold, platinum)",
+      "is_credential": false
+    },
+    {
+      "name": "ticket_api_key",
+      "type": "string",
+      "description": "API key for ticket system",
+      "is_credential": true
+    },
+    {
+      "name": "escalation_webhook",
+      "type": "string",
+      "description": "Webhook for escalations",
+      "is_credential": true
+    }
+  ],
+  "outputs": [],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "type": "tool_call",
+        "tool_name": "fetch_ticket_details",
+        "parameters": {
+          "ticket_id": "{{ticket_id}}",
+          "api_key": "{{ticket_api_key}}"
+        },
+        "assigns_to": "ticket_details",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "analyze_ticket_sentiment",
+        "parameters": {
+          "description": "{{ticket_details}}",
+          "ticket_id": "{{ticket_id}}"
+        },
+        "assigns_to": "sentiment_analysis",
+        "description": null
+      },
+      {
+        "type": "conditional",
+        "condition": "{{customer_tier}} == 'platinum' and {{sentiment_analysis.urgency}} == 'high'",
+        "if_branch": {
+          "type": "tool_call",
+          "tool_name": "route_to_executive_support",
+          "parameters": {
+            "ticket_id": "{{ticket_id}}",
+            "customer_tier": "{{customer_tier}}"
+          },
+          "assigns_to": "routing_result",
+          "description": null
+        },
+        "else_branch": {
+          "type": "conditional",
+          "condition": "{{ticket_details.ticket_type}} == 'billing'",
+          "if_branch": {
+            "type": "tool_call",
+            "tool_name": "route_to_billing_specialists",
+            "parameters": {
+              "ticket_id": "{{ticket_id}}"
+            },
+            "assigns_to": "routing_result",
+            "description": null
+          },
+          "else_branch": {
+            "type": "conditional",
+            "condition": "{{ticket_details.ticket_type}} == 'technical' and {{sentiment_analysis.complexity}} == 'high'",
+            "if_branch": {
+              "type": "tool_call",
+              "tool_name": "route_to_senior_engineers",
+              "parameters": {
+                "ticket_id": "{{ticket_id}}"
+              },
+              "assigns_to": "routing_result",
+              "description": null
+            },
+            "else_branch": {
+              "type": "tool_call",
+              "tool_name": "route_to_general_support",
+              "parameters": {
+                "ticket_id": "{{ticket_id}}"
+              },
+              "assigns_to": "routing_result",
+              "description": null
+            },
+            "description": null
+          },
+          "description": null
+        },
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "send_team_notification",
+        "parameters": {
+          "ticket_id": "{{ticket_id}}",
+          "assigned_team": "{{routing_result.team}}",
+          "webhook": "{{escalation_webhook}}"
+        },
+        "assigns_to": "notification_status",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "update_ticket_status",
+        "parameters": {
+          "ticket_id": "{{ticket_id}}",
+          "status": "assigned",
+          "assigned_team": "{{routing_result.team}}",
+          "api_key": "{{ticket_api_key}}"
+        },
+        "assigns_to": "update_result",
+        "description": null
+      }
+    ],
+    "description": null
+  },
+  "metadata": {}
+}

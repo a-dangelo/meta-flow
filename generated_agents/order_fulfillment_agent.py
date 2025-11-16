@@ -13,11 +13,12 @@ This agent requires the following environment variables:
 - WAREHOUSE_API_KEY: API key for warehouse system
   Setup: export WAREHOUSE_API_KEY=<your-value-here>
 
-Generated: 2025-11-14T16:32:45.733925
+Generated: 2025-11-16T09:54:12.782055
 Version: 1.0.0
 """
 
 import os
+import asyncio
 from typing import Any, Dict, Optional
 
 

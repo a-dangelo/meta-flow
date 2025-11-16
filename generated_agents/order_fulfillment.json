@@ -1,0 +1,129 @@
+{
+  "name": "order_fulfillment",
+  "description": "Process customer orders with payment verification and shipping",
+  "version": "1.0.0",
+  "inputs": [
+    {
+      "name": "order_id",
+      "type": "string",
+      "description": "Unique order identifier",
+      "is_credential": false
+    },
+    {
+      "name": "customer_id",
+      "type": "string",
+      "description": "Customer identifier",
+      "is_credential": false
+    },
+    {
+      "name": "payment_token",
+      "type": "string",
+      "description": "Payment processing token",
+      "is_credential": true
+    },
+    {
+      "name": "warehouse_api_key",
+      "type": "string",
+      "description": "API key for warehouse system",
+      "is_credential": true
+    }
+  ],
+  "outputs": [],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "type": "tool_call",
+        "tool_name": "fetch_order_details",
+        "parameters": {
+          "order_id": "{{order_id}}"
+        },
+        "assigns_to": "order_details",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "validate_inventory_availability",
+        "parameters": {
+          "order_id": "{{order_id}}",
+          "warehouse_api_key": "{{warehouse_api_key}}"
+        },
+        "assigns_to": "inventory_status",
+        "description": null
+      },
+      {
+        "type": "conditional",
+        "condition": "{{order_details.payment_amount}} > 500",
+        "if_branch": {
+          "type": "sequential",
+          "steps": [
+            {
+              "type": "tool_call",
+              "tool_name": "perform_enhanced_fraud_check",
+              "parameters": {
+                "order_id": "{{order_id}}",
+                "payment_token": "{{payment_token}}"
+              },
+              "assigns_to": "fraud_check_result",
+              "description": null
+            },
+            {
+              "type": "tool_call",
+              "tool_name": "process_payment",
+              "parameters": {
+                "order_id": "{{order_id}}",
+                "payment_token": "{{payment_token}}"
+              },
+              "assigns_to": "payment_result",
+              "description": null
+            }
+          ],
+          "description": null
+        },
+        "else_branch": {
+          "type": "tool_call",
+          "tool_name": "process_standard_payment",
+          "parameters": {
+            "order_id": "{{order_id}}",
+            "payment_token": "{{payment_token}}"
+          },
+          "assigns_to": "payment_result",
+          "description": null
+        },
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "generate_shipping_label",
+        "parameters": {
+          "order_id": "{{order_id}}",
+          "warehouse_api_key": "{{warehouse_api_key}}"
+        },
+        "assigns_to": "shipping_label",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "update_order_status",
+        "parameters": {
+          "order_id": "{{order_id}}",
+          "status": "shipped"
+        },
+        "assigns_to": "status_update",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "send_confirmation_email",
+        "parameters": {
+          "customer_id": "{{customer_id}}",
+          "order_id": "{{order_id}}"
+        },
+        "assigns_to": "email_confirmation",
+        "description": null
+      }
+    ],
+    "description": null
+  },
+  "metadata": {}
+}
