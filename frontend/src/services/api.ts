@@ -160,8 +160,19 @@ class APIService {
    */
   public async getExamples(): Promise<ExamplesResponse> {
     try {
-      const response = await this.client.get<ExamplesResponse>('/api/examples');
-      return response.data;
+      // Backend returns Dict[str, ExampleSpec], transform to ExamplesResponse
+      const response = await this.client.get<Record<string, Omit<import('@/types').ExampleSpec, 'name'>>>('/api/examples');
+
+      // Transform {key: {...}} to {examples: [{name: key, ...}, ...]}
+      const examples = Object.entries(response.data).map(([name, spec]) => ({
+        name,
+        ...spec,
+      }));
+
+      return {
+        examples,
+        count: examples.length,
+      };
     } catch (error) {
       if (error instanceof APIServiceError) {
         throw error;

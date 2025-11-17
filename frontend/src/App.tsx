@@ -50,9 +50,54 @@ const theme = extendTheme({
   styles: {
     global: (props: any) => ({
       body: {
-        bg: props.colorMode === 'dark' ? 'gray.900' : 'gray.50',
+        bg: props.colorMode === 'dark' ? '#0f1419' : '#f7fafc',
+        color: props.colorMode === 'dark' ? 'gray.100' : 'gray.800',
+        lineHeight: 'base',
+      },
+      'h1, h2, h3, h4, h5, h6': {
+        letterSpacing: 'tight',
       },
     }),
+  },
+  components: {
+    Heading: {
+      baseStyle: {
+        fontWeight: '700',
+        letterSpacing: '-0.025em',
+      },
+    },
+    Button: {
+      baseStyle: {
+        fontWeight: '600',
+        letterSpacing: '0.025em',
+      },
+    },
+    Badge: {
+      baseStyle: {
+        fontWeight: '600',
+        px: 3,
+        py: 1,
+      },
+    },
+  },
+  fontSizes: {
+    xs: '0.75rem',
+    sm: '0.875rem',
+    md: '1rem',
+    lg: '1.125rem',
+    xl: '1.25rem',
+    '2xl': '1.5rem',
+    '3xl': '1.875rem',
+    '4xl': '2.25rem',
+  },
+  lineHeights: {
+    normal: 'normal',
+    none: 1,
+    shorter: 1.25,
+    short: 1.375,
+    base: 1.5,
+    tall: 1.625,
+    taller: 2,
   },
 });
 
@@ -171,22 +216,55 @@ function AppContent() {
     <ErrorBoundary>
       <Box minH="100vh" bg={bgColor}>
           {/* Header */}
-          <Box bg={cardBg} borderBottom="1px" borderColor="gray.200" py={4}>
+          <Box
+            bg={useColorModeValue('rgba(255, 255, 255, 0.95)', 'rgba(15, 20, 25, 0.95)')}
+            borderBottom="1px"
+            borderColor={useColorModeValue('gray.300', 'gray.700')}
+            py={5}
+            position="sticky"
+            top={0}
+            zIndex={10}
+            backdropFilter="blur(10px)"
+            boxShadow="sm"
+          >
             <Container maxW="container.xl">
               <Flex align="center">
                 <HStack spacing={4}>
-                  <Heading size="lg">Meta-Flow Agent Generator</Heading>
-                  <Badge colorScheme="blue" variant="subtle">
+                  <Heading
+                    size="xl"
+                    fontWeight="800"
+                    bgGradient={useColorModeValue(
+                      'linear(to-r, blue.600, purple.500)',
+                      'linear(to-r, blue.300, purple.300)'
+                    )}
+                    bgClip="text"
+                  >
+                    Meta-Flow Agent Generator
+                  </Heading>
+                  <Badge
+                    colorScheme="blue"
+                    variant="subtle"
+                    fontSize="md"
+                    borderRadius="full"
+                  >
                     v{APP_VERSION}
                   </Badge>
                 </HStack>
 
                 <Spacer />
 
-                <HStack spacing={3}>
-                  {/* Health status indicator */}
-                  <HStack>
-                    <Text fontSize="sm" color="gray.600">
+                <HStack spacing={4}>
+                  {/* Enhanced health status indicator */}
+                  <HStack
+                    spacing={2}
+                    px={3}
+                    py={2}
+                    bg={useColorModeValue('gray.50', 'gray.700')}
+                    borderRadius="md"
+                    border="1px solid"
+                    borderColor={useColorModeValue('gray.200', 'gray.600')}
+                  >
+                    <Text fontSize="sm" fontWeight="600" color="gray.600">
                       Backend:
                     </Text>
                     <Badge
@@ -197,23 +275,27 @@ function AppContent() {
                           ? 'red'
                           : 'gray'
                       }
+                      variant="solid"
+                      fontSize="xs"
+                      borderRadius="full"
                     >
                       {healthStatus === 'healthy'
                         ? apiKeyConfigured
-                          ? 'Ready'
-                          : 'No API Key'
+                          ? '● Ready'
+                          : '○ No API Key'
                         : healthStatus === 'error'
-                        ? 'Disconnected'
-                        : 'Checking...'}
+                        ? '✕ Disconnected'
+                        : '○ Checking...'}
                     </Badge>
                   </HStack>
 
                   {/* Info button */}
-                  <Tooltip label="About Meta-Flow">
+                  <Tooltip label="About Meta-Flow" hasArrow placement="bottom">
                     <IconButton
                       aria-label="Info"
                       icon={<InfoIcon />}
                       variant="ghost"
+                      size="md"
                       onClick={() => {
                         toast({
                           title: 'Meta-Flow Agent Generator',
@@ -224,16 +306,27 @@ function AppContent() {
                           isClosable: true,
                         });
                       }}
+                      _hover={{
+                        bg: useColorModeValue('blue.50', 'blue.900'),
+                        transform: 'scale(1.05)',
+                      }}
+                      transition="all 0.2s"
                     />
                   </Tooltip>
 
                   {/* Color mode toggle */}
-                  <Tooltip label="Toggle color mode">
+                  <Tooltip label="Toggle color mode" hasArrow placement="bottom">
                     <IconButton
                       aria-label="Toggle color mode"
                       icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
                       onClick={toggleColorMode}
                       variant="ghost"
+                      size="md"
+                      _hover={{
+                        bg: useColorModeValue('purple.50', 'purple.900'),
+                        transform: 'rotate(20deg) scale(1.05)',
+                      }}
+                      transition="all 0.2s"
                     />
                   </Tooltip>
                 </HStack>
@@ -242,9 +335,9 @@ function AppContent() {
           </Box>
 
           {/* Main content */}
-          <Container maxW="container.xl" py={6}>
+          <Container maxW="container.xl" py={8} px={{ base: 4, md: 6, lg: 8 }}>
             {healthStatus === 'error' ? (
-              <Alert status="error" borderRadius="md">
+              <Alert status="error" borderRadius="lg" variant="left-accent">
                 <AlertIcon />
                 <VStack align="start" spacing={2}>
                   <Text fontWeight="bold">Backend Connection Error</Text>
@@ -259,9 +352,29 @@ function AppContent() {
                 </VStack>
               </Alert>
             ) : (
-              <VStack spacing={6} align="stretch" w="100%" maxW="100%">
+              <VStack spacing={8} align="stretch" w="100%" maxW="100%">
                 {/* Top row: Editor Panel (full width) */}
-                <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" w="100%">
+                <Box
+                  bg={cardBg}
+                  p={6}
+                  borderRadius="lg"
+                  shadow={useColorModeValue(
+                    '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                  )}
+                  border="1px solid"
+                  borderColor={useColorModeValue('gray.200', 'gray.700')}
+                  borderTop="3px solid"
+                  borderTopColor="blue.500"
+                  w="100%"
+                  transition="all 0.2s"
+                  _hover={{
+                    shadow: useColorModeValue(
+                      '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                      '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3)'
+                    ),
+                  }}
+                >
                   <EditorPanel
                     value={editorContent}
                     onChange={setEditorContent}
@@ -271,10 +384,28 @@ function AppContent() {
                 </Box>
 
                 {/* Bottom row: Pipeline Status + Output */}
-                <Grid templateColumns={{ base: '1fr', lg: '350px 1fr' }} gap={6} w="100%">
+                <Grid templateColumns={{ base: '1fr', lg: '380px 1fr' }} gap={8} w="100%">
                   {/* Left: Pipeline Visualizer (fixed width) */}
                   <GridItem>
-                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" height="100%">
+                    <Box
+                      bg={cardBg}
+                      p={6}
+                      borderRadius="lg"
+                      shadow={useColorModeValue(
+                        '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                      )}
+                      border="1px solid"
+                      borderColor={useColorModeValue('gray.200', 'gray.700')}
+                      height="100%"
+                      transition="all 0.2s"
+                      _hover={{
+                        shadow: useColorModeValue(
+                          '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                          '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3)'
+                        ),
+                      }}
+                    >
                       <PipelineVisualizer
                         currentStage={currentStage}
                         progress={progress}
@@ -286,7 +417,25 @@ function AppContent() {
 
                   {/* Right: Output Panel (flexible width) */}
                   <GridItem overflow="hidden">
-                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" minH="500px">
+                    <Box
+                      bg={cardBg}
+                      p={6}
+                      borderRadius="lg"
+                      shadow={useColorModeValue(
+                        '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                      )}
+                      border="1px solid"
+                      borderColor={useColorModeValue('gray.200', 'gray.700')}
+                      minH="500px"
+                      transition="all 0.2s"
+                      _hover={{
+                        shadow: useColorModeValue(
+                          '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                          '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3)'
+                        ),
+                      }}
+                    >
                       <OutputPanel
                         result={lastResult}
                         isLoading={isGenerating}
@@ -301,9 +450,20 @@ function AppContent() {
           </Container>
 
           {/* Footer */}
-          <Box bg={cardBg} borderTop="1px" borderColor="gray.200" py={4} mt={8}>
+          <Box
+            bg={cardBg}
+            borderTop="1px"
+            borderColor={useColorModeValue('gray.300', 'gray.700')}
+            py={6}
+            mt={12}
+          >
             <Container maxW="container.xl">
-              <Text fontSize="sm" color="gray.600" textAlign="center">
+              <Text
+                fontSize="sm"
+                color={useColorModeValue('gray.600', 'gray.400')}
+                textAlign="center"
+                letterSpacing="wide"
+              >
                 Meta-Flow Agent Generator • Transform workflow specifications into executable agents
               </Text>
             </Container>

@@ -20,10 +20,10 @@ export interface HealthResponse {
 // Examples types
 export interface ExampleSpec {
   name: string;
-  description: string;
+  description: string | null;
   type: 'sequential' | 'conditional' | 'parallel' | 'orchestrator' | 'nested';
   content: string;
-  file_path: string;
+  filename: string;
 }
 
 export interface ExamplesResponse {

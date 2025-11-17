@@ -26,8 +26,8 @@ import {
   DownloadIcon,
   DeleteIcon,
   RepeatIcon,
-  InfoIcon,
   AttachmentIcon,
+  StarIcon,
 } from '@chakra-ui/icons';
 import { useExamples } from '@/hooks/useExamples';
 
@@ -71,8 +71,6 @@ export function EditorPanel({
   const { examples = [], loading: examplesLoading, selectedExample, selectExample } = useExamples();
 
   // Dark mode color values
-  const toolbarBg = useColorModeValue('gray.50', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
   const editorTheme = useColorModeValue('vs-light', 'vs-dark');
   const spinnerBg = useColorModeValue('gray.50', 'gray.800');
 
@@ -228,18 +226,33 @@ export function EditorPanel({
   );
 
   return (
-    <VStack spacing={4} align="stretch">
-      {/* Toolbar */}
-      <Box bg={toolbarBg} p={3} borderRadius="md">
-        <Flex align="center" gap={3}>
+    <VStack spacing={5} align="stretch">
+      {/* Enhanced Toolbar */}
+      <Box
+        bg={useColorModeValue('white', 'gray.800')}
+        p={4}
+        borderRadius="lg"
+        border="1px solid"
+        borderColor={useColorModeValue('gray.200', 'gray.600')}
+        shadow="sm"
+      >
+        <Flex align="center" gap={3} flexWrap={{ base: 'wrap', md: 'nowrap' }}>
           {/* Example selector */}
           <Select
             placeholder="Load example..."
             value={selectedExample?.name || ''}
             onChange={(e) => handleExampleSelect(e.target.value)}
             isDisabled={examplesLoading || isGenerating}
-            maxW="250px"
+            maxW={{ base: '100%', md: '280px' }}
             size="sm"
+            borderRadius="md"
+            _hover={{
+              borderColor: 'blue.400',
+            }}
+            _focus={{
+              borderColor: 'blue.500',
+              boxShadow: '0 0 0 1px rgba(66, 153, 225, 0.6)',
+            }}
           >
             {examples?.map((example) => (
               <option key={example.name} value={example.name}>
@@ -250,20 +263,26 @@ export function EditorPanel({
 
           {/* Selected example info */}
           {selectedExample && (
-            <Tooltip label={selectedExample.description}>
-              <Badge colorScheme="blue" variant="subtle">
+            <Tooltip label={selectedExample.description} hasArrow>
+              <Badge
+                colorScheme="blue"
+                variant="subtle"
+                px={3}
+                py={1}
+                borderRadius="full"
+              >
                 <HStack spacing={1}>
-                  <InfoIcon boxSize={3} />
-                  <Text>{selectedExample.type}</Text>
+                  <StarIcon boxSize={3} />
+                  <Text fontSize="xs" fontWeight="600">{selectedExample.type}</Text>
                 </HStack>
               </Badge>
             </Tooltip>
           )}
 
-          <Spacer />
+          <Spacer display={{ base: 'none', md: 'block' }} />
 
           {/* Action buttons */}
-          <HStack spacing={2}>
+          <HStack spacing={2} flexWrap="wrap">
             {/* File upload */}
             <Input
               ref={fileInputRef}
@@ -273,47 +292,83 @@ export function EditorPanel({
               display="none"
               id="file-upload"
             />
-            <Tooltip label="Upload file">
+            <Tooltip label="Upload file" hasArrow>
               <IconButton
                 aria-label="Upload"
                 icon={<AttachmentIcon />}
                 size="sm"
+                variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
                 isDisabled={isGenerating}
+                _hover={{
+                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  transform: 'translateY(-2px)',
+                }}
+                _active={{
+                  transform: 'translateY(0)',
+                }}
+                transition="all 0.15s"
               />
             </Tooltip>
 
-            <Tooltip label="Copy to clipboard">
+            <Tooltip label="Copy to clipboard" hasArrow>
               <IconButton
                 aria-label="Copy"
                 icon={<CopyIcon />}
                 size="sm"
+                variant="ghost"
                 onClick={handleCopy}
                 isDisabled={isGenerating}
+                _hover={{
+                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  transform: 'translateY(-2px)',
+                }}
+                _active={{
+                  transform: 'translateY(0)',
+                }}
+                transition="all 0.15s"
               />
             </Tooltip>
 
-            <Tooltip label="Download as file">
+            <Tooltip label="Download as file" hasArrow>
               <IconButton
                 aria-label="Download"
                 icon={<DownloadIcon />}
                 size="sm"
+                variant="ghost"
                 onClick={handleDownload}
                 isDisabled={isGenerating}
+                _hover={{
+                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  transform: 'translateY(-2px)',
+                }}
+                _active={{
+                  transform: 'translateY(0)',
+                }}
+                transition="all 0.15s"
               />
             </Tooltip>
 
-            <Tooltip label="Reset to template">
+            <Tooltip label="Reset to template" hasArrow>
               <IconButton
                 aria-label="Reset"
                 icon={<RepeatIcon />}
                 size="sm"
+                variant="ghost"
                 onClick={handleReset}
                 isDisabled={isGenerating}
+                _hover={{
+                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  transform: 'translateY(-2px)',
+                }}
+                _active={{
+                  transform: 'translateY(0)',
+                }}
+                transition="all 0.15s"
               />
             </Tooltip>
 
-            <Tooltip label="Clear editor">
+            <Tooltip label="Clear editor" hasArrow>
               <IconButton
                 aria-label="Clear"
                 icon={<DeleteIcon />}
@@ -322,6 +377,14 @@ export function EditorPanel({
                 variant="ghost"
                 onClick={handleClear}
                 isDisabled={isGenerating}
+                _hover={{
+                  bg: useColorModeValue('red.50', 'red.900'),
+                  transform: 'translateY(-2px)',
+                }}
+                _active={{
+                  transform: 'translateY(0)',
+                }}
+                transition="all 0.15s"
               />
             </Tooltip>
           </HStack>
@@ -331,24 +394,37 @@ export function EditorPanel({
       {/* Monaco Editor */}
       <Box
         border="1px solid"
-        borderColor={borderColor}
-        borderRadius="md"
+        borderColor={useColorModeValue('gray.300', 'gray.600')}
+        borderRadius="lg"
         overflow="hidden"
-        height="400px"
-        minH="400px"
+        height="420px"
+        minH="420px"
+        shadow="sm"
+        transition="all 0.2s"
+        _hover={{
+          borderColor: useColorModeValue('gray.400', 'gray.500'),
+          shadow: 'md',
+        }}
       >
         <Suspense
           fallback={
             <Flex align="center" justify="center" height="100%" bg={spinnerBg}>
-              <VStack spacing={3}>
-                <Spinner size="xl" color="blue.500" />
-                <Text color="gray.600">Loading editor...</Text>
+              <VStack spacing={4}>
+                <Spinner
+                  size="xl"
+                  color="blue.500"
+                  thickness="3px"
+                  speed="0.65s"
+                />
+                <Text color={useColorModeValue('gray.600', 'gray.400')} fontWeight="500">
+                  Loading editor...
+                </Text>
               </VStack>
             </Flex>
           }
         >
           <MonacoEditor
-            height="400px"
+            height="420px"
             defaultLanguage="plaintext"
             value={value}
             onChange={handleEditorChange}
@@ -365,22 +441,61 @@ export function EditorPanel({
               quickSuggestions: false,
               suggestOnTriggerCharacters: false,
               tabSize: 2,
+              fontFamily: '"Fira Code", "Roboto Mono", monospace',
+              fontLigatures: true,
             }}
           />
         </Suspense>
       </Box>
 
-      {/* Submit button */}
+      {/* Enhanced Submit button */}
       {onSubmit && (
         <Button
           colorScheme="blue"
           size="lg"
           onClick={onSubmit}
           isLoading={isGenerating}
-          loadingText="Generating..."
+          loadingText="Generating Agent..."
           isDisabled={!value.trim() || isGenerating}
+          width="100%"
+          height="60px"
+          fontSize="lg"
+          fontWeight="bold"
+          shadow="lg"
+          bgGradient={
+            !isGenerating
+              ? useColorModeValue(
+                  'linear(to-r, blue.500, blue.600)',
+                  'linear(to-r, blue.400, blue.500)'
+                )
+              : undefined
+          }
+          _hover={
+            !isGenerating
+              ? {
+                  transform: 'translateY(-2px)',
+                  shadow: 'xl',
+                  bgGradient: useColorModeValue(
+                    'linear(to-r, blue.600, blue.700)',
+                    'linear(to-r, blue.500, blue.600)'
+                  ),
+                }
+              : {}
+          }
+          _active={{
+            transform: 'translateY(0)',
+            shadow: 'md',
+          }}
+          _disabled={{
+            opacity: 0.4,
+            cursor: 'not-allowed',
+            bgGradient: 'none',
+          }}
+          transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+          leftIcon={!isGenerating ? <StarIcon boxSize={5} /> : undefined}
+          letterSpacing="wide"
         >
-          Generate Agent
+          {isGenerating ? 'Generating Agent...' : 'Generate Agent'}
         </Button>
       )}
     </VStack>

@@ -48,6 +48,9 @@ export function useExamples(): UseExamplesReturn {
       if (
         !forceRefresh &&
         cachedExamples.data &&
+        cachedExamples.data.examples &&
+        Array.isArray(cachedExamples.data.examples) &&
+        cachedExamples.data.examples.length > 0 &&
         now - cachedExamples.timestamp < ONE_HOUR
       ) {
         setExamples(cachedExamples.data.examples);
@@ -67,7 +70,7 @@ export function useExamples(): UseExamplesReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load examples';
       setError(errorMessage);
-      console.error('Error loading examples:', err);
+      console.error('[useExamples] Error loading examples:', err);
 
       // Fall back to cached data if available
       if (cachedExamples.data) {
