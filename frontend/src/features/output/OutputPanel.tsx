@@ -153,7 +153,7 @@ export function OutputPanel({
   }
 
   return (
-    <VStack spacing={4} align="stretch" height="100%">
+    <VStack spacing={4} align="stretch" height="100%" w="100%" maxW="100%" overflow="hidden">
       {/* Header with metadata */}
       <Flex align="center" wrap="wrap" gap={2}>
         <HStack spacing={2}>
@@ -181,6 +181,7 @@ export function OutputPanel({
         flex={1}
         display="flex"
         flexDirection="column"
+        overflow="hidden"
       >
         <TabList>
           <Tab>
@@ -221,7 +222,9 @@ export function OutputPanel({
                     icon={<CopyIcon />}
                     size="sm"
                     onClick={() => handleCopy(pythonCode, 'Python code')}
+                    colorScheme="gray"
                     bg="white"
+                    color="gray.700"
                     _hover={{ bg: 'gray.100' }}
                   />
                 </Tooltip>
@@ -237,22 +240,26 @@ export function OutputPanel({
                         'text/x-python'
                       )
                     }
+                    colorScheme="gray"
                     bg="white"
+                    color="gray.700"
                     _hover={{ bg: 'gray.100' }}
                   />
                 </Tooltip>
               </HStack>
 
               {/* Code display */}
-              <Box p={4}>
+              <Box p={4} overflowX="auto">
                 <SyntaxHighlighter
                   language="python"
                   style={syntaxTheme}
                   showLineNumbers
+                  wrapLongLines={false}
                   customStyle={{
                     margin: 0,
                     fontSize: '13px',
                     backgroundColor: 'transparent',
+                    whiteSpace: 'pre',
                   }}
                 >
                   {pythonCode}
@@ -279,7 +286,9 @@ export function OutputPanel({
                     icon={<CopyIcon />}
                     size="sm"
                     onClick={() => handleCopy(formattedJson, 'JSON')}
+                    colorScheme="gray"
                     bg="white"
+                    color="gray.700"
                     _hover={{ bg: 'gray.100' }}
                   />
                 </Tooltip>
@@ -295,22 +304,26 @@ export function OutputPanel({
                         'application/json'
                       )
                     }
+                    colorScheme="gray"
                     bg="white"
+                    color="gray.700"
                     _hover={{ bg: 'gray.100' }}
                   />
                 </Tooltip>
               </HStack>
 
               {/* JSON display */}
-              <Box p={4}>
+              <Box p={4} overflowX="auto">
                 <SyntaxHighlighter
                   language="json"
                   style={syntaxTheme}
                   showLineNumbers
+                  wrapLongLines={false}
                   customStyle={{
                     margin: 0,
                     fontSize: '13px',
                     backgroundColor: 'transparent',
+                    whiteSpace: 'pre',
                   }}
                 >
                   {formattedJson}
@@ -328,19 +341,22 @@ export function OutputPanel({
                 borderColor="gray.200"
                 borderRadius="md"
                 overflow="auto"
-                p={4}
               >
-                <SyntaxHighlighter
-                  language="json"
-                  style={syntaxTheme}
-                  customStyle={{
-                    margin: 0,
-                    fontSize: '13px',
-                    backgroundColor: 'transparent',
-                  }}
-                >
-                  {JSON.stringify(result.metadata, null, 2)}
-                </SyntaxHighlighter>
+                <Box p={4} overflowX="auto">
+                  <SyntaxHighlighter
+                    language="json"
+                    style={syntaxTheme}
+                    wrapLongLines={false}
+                    customStyle={{
+                      margin: 0,
+                      fontSize: '13px',
+                      backgroundColor: 'transparent',
+                      whiteSpace: 'pre',
+                    }}
+                  >
+                    {JSON.stringify(result.metadata, null, 2)}
+                  </SyntaxHighlighter>
+                </Box>
               </Box>
             </TabPanel>
           )}

@@ -24,27 +24,52 @@ import {
   AlertIcon,
   useColorMode,
   useColorModeValue,
+  extendTheme,
+  type ThemeConfig,
 } from '@chakra-ui/react';
 import { MoonIcon, SunIcon, InfoIcon } from '@chakra-ui/icons';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { EditorPanel } from '@/features/editor';
+import { EditorPanel, DEFAULT_TEMPLATE } from '@/features/editor';
 import { PipelineVisualizer } from '@/features/pipeline';
 import { OutputPanel } from '@/features/output';
 import { useGenerate } from '@/hooks/useGenerate';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { checkHealth } from '@/services/api';
 import { APP_VERSION } from '@/config/env';
 
 /**
- * Main App component
+ * Configure Chakra UI theme with color mode support
  */
-function App() {
+const config: ThemeConfig = {
+  initialColorMode: 'light',
+  useSystemColorMode: false,
+};
+
+const theme = extendTheme({
+  config,
+  styles: {
+    global: (props: any) => ({
+      body: {
+        bg: props.colorMode === 'dark' ? 'gray.900' : 'gray.50',
+      },
+    }),
+  },
+});
+
+/**
+ * Inner App component that uses color mode hooks
+ */
+function AppContent() {
   const toast = useToast();
   const { colorMode, toggleColorMode } = useColorMode();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
 
-  // State
-  const [editorContent, setEditorContent] = useState('');
+  // State with localStorage persistence
+  const [editorContent, setEditorContent] = useLocalStorage(
+    'meta-flow-editor-content',
+    DEFAULT_TEMPLATE
+  );
   const [healthStatus, setHealthStatus] = useState<'checking' | 'healthy' | 'error'>('checking');
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
 
@@ -143,9 +168,8 @@ function App() {
   }, [cancel, toast]);
 
   return (
-    <ChakraProvider>
-      <ErrorBoundary>
-        <Box minH="100vh" bg={bgColor}>
+    <ErrorBoundary>
+      <Box minH="100vh" bg={bgColor}>
           {/* Header */}
           <Box bg={cardBg} borderBottom="1px" borderColor="gray.200" py={4}>
             <Container maxW="container.xl">
@@ -235,27 +259,22 @@ function App() {
                 </VStack>
               </Alert>
             ) : (
-              <Grid templateColumns={{ base: '1fr', lg: '3fr 2fr' }} gap={6}>
-                {/* Left column: Editor and Pipeline */}
-                <GridItem>
-                  <VStack spacing={6} align="stretch">
-                    {/* Editor Panel */}
-                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" minH="500px">
-                      <EditorPanel
-                        value={editorContent}
-                        onChange={setEditorContent}
-                        onSubmit={isGenerating ? handleCancel : handleGenerate}
-                        isGenerating={isGenerating}
-                      />
-                    </Box>
-                  </VStack>
-                </GridItem>
+              <VStack spacing={6} align="stretch" w="100%" maxW="100%">
+                {/* Top row: Editor Panel (full width) */}
+                <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" w="100%">
+                  <EditorPanel
+                    value={editorContent}
+                    onChange={setEditorContent}
+                    onSubmit={isGenerating ? handleCancel : handleGenerate}
+                    isGenerating={isGenerating}
+                  />
+                </Box>
 
-                {/* Right column: Pipeline Status and Output */}
-                <GridItem>
-                  <VStack spacing={6} align="stretch">
-                    {/* Pipeline Visualizer */}
-                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm">
+                {/* Bottom row: Pipeline Status + Output */}
+                <Grid templateColumns={{ base: '1fr', lg: '350px 1fr' }} gap={6} w="100%">
+                  {/* Left: Pipeline Visualizer (fixed width) */}
+                  <GridItem>
+                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" height="100%">
                       <PipelineVisualizer
                         currentStage={currentStage}
                         progress={progress}
@@ -263,9 +282,11 @@ function App() {
                         executionTime={lastResult?.execution_time}
                       />
                     </Box>
+                  </GridItem>
 
-                    {/* Output Panel */}
-                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" minH="400px">
+                  {/* Right: Output Panel (flexible width) */}
+                  <GridItem overflow="hidden">
+                    <Box bg={cardBg} p={4} borderRadius="md" shadow="sm" minH="500px">
                       <OutputPanel
                         result={lastResult}
                         isLoading={isGenerating}
@@ -273,9 +294,9 @@ function App() {
                         colorMode={colorMode}
                       />
                     </Box>
-                  </VStack>
-                </GridItem>
-              </Grid>
+                  </GridItem>
+                </Grid>
+              </VStack>
             )}
           </Container>
 
@@ -289,6 +310,16 @@ function App() {
           </Box>
         </Box>
       </ErrorBoundary>
+  );
+}
+
+/**
+ * Main App wrapper with ChakraProvider
+ */
+function App() {
+  return (
+    <ChakraProvider theme={theme}>
+      <AppContent />
     </ChakraProvider>
   );
 }

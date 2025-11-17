@@ -3,7 +3,7 @@
  * Monaco editor for workflow specifications with lazy loading
  */
 
-import { Suspense, lazy, useState, useCallback, useEffect } from 'react';
+import { Suspense, lazy, useCallback, useRef } from 'react';
 import {
   Box,
   VStack,
@@ -18,6 +18,8 @@ import {
   Flex,
   Badge,
   Spacer,
+  useColorModeValue,
+  Input,
 } from '@chakra-ui/react';
 import {
   CopyIcon,
@@ -25,9 +27,9 @@ import {
   DeleteIcon,
   RepeatIcon,
   InfoIcon,
+  AttachmentIcon,
 } from '@chakra-ui/icons';
 import { useExamples } from '@/hooks/useExamples';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 // Lazy load Monaco Editor (5MB bundle)
 const MonacoEditor = lazy(() => import('@monaco-editor/react'));
@@ -42,7 +44,7 @@ interface EditorPanelProps {
 /**
  * Default editor template
  */
-const DEFAULT_TEMPLATE = `Workflow: My Workflow
+export const DEFAULT_TEMPLATE = `Workflow: My Workflow
 Description: Enter your workflow description here
 
 Inputs:
@@ -56,7 +58,7 @@ Outputs:
 - result (string): Description of output`;
 
 /**
- * EditorPanel component
+ * EditorPanel component - Fully controlled by parent
  */
 export function EditorPanel({
   value,
@@ -65,21 +67,14 @@ export function EditorPanel({
   isGenerating = false,
 }: EditorPanelProps) {
   const toast = useToast();
-  const { examples, loading: examplesLoading, selectedExample, selectExample } = useExamples();
-  const [editorContent, setEditorContent] = useLocalStorage('meta-flow-editor-content', value || DEFAULT_TEMPLATE);
-  const [selectedExampleName, setSelectedExampleName] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { examples = [], loading: examplesLoading, selectedExample, selectExample } = useExamples();
 
-  // Sync editor content with parent
-  useEffect(() => {
-    onChange(editorContent);
-  }, [editorContent, onChange]);
-
-  // Sync value prop with editor
-  useEffect(() => {
-    if (value !== editorContent) {
-      setEditorContent(value);
-    }
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Dark mode color values
+  const toolbarBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const editorTheme = useColorModeValue('vs-light', 'vs-dark');
+  const spinnerBg = useColorModeValue('gray.50', 'gray.800');
 
   /**
    * Handle example selection
@@ -88,15 +83,13 @@ export function EditorPanel({
     (exampleName: string) => {
       if (!exampleName) {
         selectExample(null);
-        setSelectedExampleName('');
         return;
       }
 
-      const example = examples.find((ex) => ex.name === exampleName);
+      const example = examples?.find((ex) => ex.name === exampleName);
       if (example) {
         selectExample(example);
-        setSelectedExampleName(exampleName);
-        setEditorContent(example.content);
+        onChange(example.content);
         toast({
           title: 'Example loaded',
           description: `Loaded "${example.name}" example`,
@@ -106,27 +99,77 @@ export function EditorPanel({
         });
       }
     },
-    [examples, selectExample, setEditorContent, toast]
+    [examples, selectExample, onChange, toast]
+  );
+
+  /**
+   * Handle file upload
+   */
+  const handleFileUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      if (!file.name.endsWith('.txt')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select a .txt file',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        onChange(content);
+        toast({
+          title: 'File uploaded',
+          description: `Loaded "${file.name}"`,
+          status: 'success',
+          duration: 2000,
+          isClosable: true,
+        });
+      };
+      reader.onerror = () => {
+        toast({
+          title: 'Upload failed',
+          description: 'Could not read the file',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      };
+      reader.readAsText(file);
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    [onChange, toast]
   );
 
   /**
    * Copy to clipboard
    */
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(editorContent);
+    navigator.clipboard.writeText(value);
     toast({
       title: 'Copied to clipboard',
       status: 'success',
       duration: 2000,
       isClosable: true,
     });
-  }, [editorContent, toast]);
+  }, [value, toast]);
 
   /**
    * Download as file
    */
   const handleDownload = useCallback(() => {
-    const blob = new Blob([editorContent], { type: 'text/plain' });
+    const blob = new Blob([value], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -142,65 +185,63 @@ export function EditorPanel({
       duration: 2000,
       isClosable: true,
     });
-  }, [editorContent, toast]);
+  }, [value, toast]);
 
   /**
    * Clear editor
    */
   const handleClear = useCallback(() => {
-    setEditorContent(DEFAULT_TEMPLATE);
+    onChange('');
     selectExample(null);
-    setSelectedExampleName('');
     toast({
       title: 'Editor cleared',
       status: 'info',
       duration: 2000,
       isClosable: true,
     });
-  }, [setEditorContent, selectExample, toast]);
+  }, [onChange, selectExample, toast]);
 
   /**
    * Reset to template
    */
   const handleReset = useCallback(() => {
-    setEditorContent(DEFAULT_TEMPLATE);
+    onChange(DEFAULT_TEMPLATE);
     selectExample(null);
-    setSelectedExampleName('');
     toast({
       title: 'Reset to template',
       status: 'info',
       duration: 2000,
       isClosable: true,
     });
-  }, [setEditorContent, selectExample, toast]);
+  }, [onChange, selectExample, toast]);
 
   /**
-   * Handle editor change
+   * Handle editor change - directly pass to parent
    */
   const handleEditorChange = useCallback(
     (newValue: string | undefined) => {
       if (newValue !== undefined) {
-        setEditorContent(newValue);
+        onChange(newValue);
       }
     },
-    [setEditorContent]
+    [onChange]
   );
 
   return (
-    <VStack spacing={4} align="stretch" height="100%">
+    <VStack spacing={4} align="stretch">
       {/* Toolbar */}
-      <Box bg="gray.50" p={3} borderRadius="md">
+      <Box bg={toolbarBg} p={3} borderRadius="md">
         <Flex align="center" gap={3}>
           {/* Example selector */}
           <Select
             placeholder="Load example..."
-            value={selectedExampleName}
+            value={selectedExample?.name || ''}
             onChange={(e) => handleExampleSelect(e.target.value)}
             isDisabled={examplesLoading || isGenerating}
             maxW="250px"
             size="sm"
           >
-            {examples.map((example) => (
+            {examples?.map((example) => (
               <option key={example.name} value={example.name}>
                 {example.name} ({example.type})
               </option>
@@ -223,6 +264,25 @@ export function EditorPanel({
 
           {/* Action buttons */}
           <HStack spacing={2}>
+            {/* File upload */}
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt"
+              onChange={handleFileUpload}
+              display="none"
+              id="file-upload"
+            />
+            <Tooltip label="Upload file">
+              <IconButton
+                aria-label="Upload"
+                icon={<AttachmentIcon />}
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                isDisabled={isGenerating}
+              />
+            </Tooltip>
+
             <Tooltip label="Copy to clipboard">
               <IconButton
                 aria-label="Copy"
@@ -269,10 +329,17 @@ export function EditorPanel({
       </Box>
 
       {/* Monaco Editor */}
-      <Box flex={1} border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden">
+      <Box
+        border="1px solid"
+        borderColor={borderColor}
+        borderRadius="md"
+        overflow="hidden"
+        height="400px"
+        minH="400px"
+      >
         <Suspense
           fallback={
-            <Flex align="center" justify="center" height="100%" bg="gray.50">
+            <Flex align="center" justify="center" height="100%" bg={spinnerBg}>
               <VStack spacing={3}>
                 <Spinner size="xl" color="blue.500" />
                 <Text color="gray.600">Loading editor...</Text>
@@ -281,11 +348,11 @@ export function EditorPanel({
           }
         >
           <MonacoEditor
-            height="100%"
+            height="400px"
             defaultLanguage="plaintext"
-            value={editorContent}
+            value={value}
             onChange={handleEditorChange}
-            theme="vs-light"
+            theme={editorTheme}
             options={{
               minimap: { enabled: false },
               fontSize: 14,
@@ -311,7 +378,7 @@ export function EditorPanel({
           onClick={onSubmit}
           isLoading={isGenerating}
           loadingText="Generating..."
-          isDisabled={!editorContent.trim() || isGenerating}
+          isDisabled={!value.trim() || isGenerating}
         >
           Generate Agent
         </Button>
