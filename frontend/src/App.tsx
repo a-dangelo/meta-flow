@@ -36,6 +36,7 @@ import { useGenerate } from '@/hooks/useGenerate';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { checkHealth } from '@/services/api';
 import { APP_VERSION } from '@/config/env';
+import { typography } from '@/theme';
 
 /**
  * Configure Chakra UI theme with color mode support
@@ -47,57 +48,54 @@ const config: ThemeConfig = {
 
 const theme = extendTheme({
   config,
+  ...typography,
   styles: {
     global: (props: any) => ({
       body: {
         bg: props.colorMode === 'dark' ? '#0f1419' : '#f7fafc',
         color: props.colorMode === 'dark' ? 'gray.100' : 'gray.800',
-        lineHeight: 'base',
+        lineHeight: 'relaxed',
+        fontSize: 'md',
       },
       'h1, h2, h3, h4, h5, h6': {
         letterSpacing: 'tight',
+        lineHeight: 'tight',
+      },
+      p: {
+        lineHeight: 'relaxed',
+      },
+      code: {
+        fontFamily: typography.fonts.mono,
       },
     }),
   },
   components: {
     Heading: {
       baseStyle: {
-        fontWeight: '700',
-        letterSpacing: '-0.025em',
+        fontWeight: 'bold',
+        letterSpacing: 'tight',
+        lineHeight: 'tight',
       },
     },
     Button: {
       baseStyle: {
-        fontWeight: '600',
-        letterSpacing: '0.025em',
+        fontWeight: 'semibold',
+        letterSpacing: 'wide',
       },
     },
     Badge: {
       baseStyle: {
-        fontWeight: '600',
+        fontWeight: 'semibold',
         px: 3,
         py: 1,
+        letterSpacing: 'wide',
       },
     },
-  },
-  fontSizes: {
-    xs: '0.75rem',
-    sm: '0.875rem',
-    md: '1rem',
-    lg: '1.125rem',
-    xl: '1.25rem',
-    '2xl': '1.5rem',
-    '3xl': '1.875rem',
-    '4xl': '2.25rem',
-  },
-  lineHeights: {
-    normal: 'normal',
-    none: 1,
-    shorter: 1.25,
-    short: 1.375,
-    base: 1.5,
-    tall: 1.625,
-    taller: 2,
+    Text: {
+      baseStyle: {
+        lineHeight: 'relaxed',
+      },
+    },
   },
 });
 
@@ -379,6 +377,7 @@ function AppContent() {
                     value={editorContent}
                     onChange={setEditorContent}
                     onSubmit={isGenerating ? handleCancel : handleGenerate}
+                    onReset={reset}
                     isGenerating={isGenerating}
                   />
                 </Box>

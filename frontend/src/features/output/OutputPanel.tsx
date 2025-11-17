@@ -17,8 +17,6 @@ import {
   IconButton,
   Tooltip,
   Badge,
-  Alert,
-  AlertIcon,
   useToast,
   Flex,
   Spacer,
@@ -28,6 +26,7 @@ import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { CopyIcon, DownloadIcon } from '@chakra-ui/icons';
 import DOMPurify from 'dompurify';
 import type { GenerateResponse } from '@/types';
+import { LoadingState, ErrorState, EmptyState, CodeSkeleton } from '@/components';
 
 interface OutputPanelProps {
   result: GenerateResponse | null;
@@ -104,38 +103,39 @@ export function OutputPanel({
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
-  // Loading state
+  // Loading state with skeleton
   if (isLoading) {
     return (
-      <Box p={8} textAlign="center">
-        <Text color="gray.500">Generating agent...</Text>
-      </Box>
+      <VStack spacing={6} align="stretch">
+        <LoadingState
+          message="Generating agent..."
+          submessage="This may take a few moments"
+        />
+        <Box p={6} borderRadius="md" bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}>
+          <CodeSkeleton lines={15} />
+        </Box>
+      </VStack>
     );
   }
 
-  // Error state
+  // Error state with enhanced UI
   if (error) {
     return (
-      <Alert status="error" borderRadius="md">
-        <AlertIcon />
-        <VStack align="start" spacing={2}>
-          <Text fontWeight="bold">Output Error</Text>
-          <Text fontSize="sm" whiteSpace="pre-wrap">
-            {error}
-          </Text>
-        </VStack>
-      </Alert>
+      <ErrorState
+        title="Generation Failed"
+        message={error}
+        suggestion="Check your workflow specification format and ensure the backend is running with a valid API key."
+      />
     );
   }
 
-  // No result state
+  // No result state with empty state component
   if (!result) {
     return (
-      <Box p={8} textAlign="center">
-        <Text color="gray.500">
-          No output yet. Enter a workflow specification and click "Generate Agent" to see results.
-        </Text>
-      </Box>
+      <EmptyState
+        title="No output yet"
+        message="Enter a workflow specification and click 'Generate Agent' to see results."
+      />
     );
   }
 
@@ -205,7 +205,7 @@ export function OutputPanel({
 
         <TabPanels flex={1} display="flex" flexDirection="column">
           {/* Python Code Tab */}
-          <TabPanel p={0} flex={1} display="flex" flexDirection="column">
+          <TabPanel p={0} flex={1} display="flex" flexDirection="column" className="tab-transition">
             <Box
               flex={1}
               border="1px solid"
@@ -213,6 +213,7 @@ export function OutputPanel({
               borderRadius="md"
               overflow="auto"
               position="relative"
+              transition="all 0.2s ease-in-out"
             >
               {/* Action buttons */}
               <HStack position="absolute" top={2} right={2} zIndex={1}>
@@ -269,7 +270,7 @@ export function OutputPanel({
           </TabPanel>
 
           {/* JSON AST Tab */}
-          <TabPanel p={0} flex={1} display="flex" flexDirection="column">
+          <TabPanel p={0} flex={1} display="flex" flexDirection="column" className="tab-transition">
             <Box
               flex={1}
               border="1px solid"
@@ -334,7 +335,7 @@ export function OutputPanel({
 
           {/* Metadata Tab */}
           {result.metadata && (
-            <TabPanel p={0} flex={1} display="flex" flexDirection="column">
+            <TabPanel p={0} flex={1} display="flex" flexDirection="column" className="tab-transition">
               <Box
                 flex={1}
                 border="1px solid"

@@ -90,6 +90,11 @@ function getStageStatus(
     return errorStageIndex !== -1 ? 'error' : 'pending';
   }
 
+  // Special case: when generation is complete, mark all stages (including "Complete") as complete
+  if (currentStage === 'complete') {
+    return 'complete';
+  }
+
   // Find the current stage index, excluding 'idle' and 'error' which aren't in STAGES
   const currentIndex = STAGES.findIndex((s) => s.id === currentStage);
 
@@ -125,7 +130,7 @@ function StageIndicator({
   return (
     <HStack spacing={3} align="start">
       <VStack spacing={2} align="center">
-        {/* Stage circle */}
+        {/* Stage circle with animations */}
         <Box
           position="relative"
           w={10}
@@ -137,40 +142,77 @@ function StageIndicator({
           display="flex"
           alignItems="center"
           justifyContent="center"
+          transform={status === 'active' ? 'scale(1.1)' : 'scale(1)'}
+          transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+          boxShadow={status === 'active' ? '0 0 0 4px rgba(66, 153, 225, 0.2)' : 'none'}
         >
-          {status === 'complete' && <CheckCircleIcon color={colors.text} />}
-          {status === 'active' && <TimeIcon color={colors.text} />}
-          {status === 'error' && <WarningIcon color={colors.text} />}
+          {status === 'complete' && (
+            <CheckCircleIcon
+              color={colors.text}
+              animation="fadeIn 0.3s ease-in-out"
+            />
+          )}
+          {status === 'active' && (
+            <TimeIcon
+              color={colors.text}
+              animation="pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+            />
+          )}
+          {status === 'error' && (
+            <WarningIcon
+              color={colors.text}
+              animation="shake 0.5s ease-in-out"
+            />
+          )}
           {status === 'pending' && (
-            <Text fontSize="sm" fontWeight="bold" color={colors.text}>
+            <Text
+              fontSize="sm"
+              fontWeight="bold"
+              color={colors.text}
+              transition="color 0.2s"
+            >
               {STAGES.findIndex((s) => s.id === stage.id) + 1}
             </Text>
           )}
         </Box>
 
-        {/* Connector line */}
+        {/* Connector line with animation */}
         {!isLast && (
           <Box
             w="2px"
             h={16}
             bg={status === 'complete' ? colors.border : borderColor}
             opacity={status === 'pending' ? 0.3 : 1}
+            transition="all 0.5s ease-in-out"
           />
         )}
       </VStack>
 
-      {/* Stage details */}
-      <VStack align="start" spacing={1} flex={1} pb={isLast ? 0 : 4}>
+      {/* Stage details with fade-in */}
+      <VStack
+        align="start"
+        spacing={1}
+        flex={1}
+        pb={isLast ? 0 : 4}
+        opacity={status === 'pending' ? 0.6 : 1}
+        transition="opacity 0.3s ease-in-out"
+      >
         <HStack>
           <Text
             fontWeight="bold"
             fontSize="sm"
             color={status === 'pending' ? 'gray.500' : colors.text}
+            transition="color 0.2s"
           >
             {stage.label}
           </Text>
           {status === 'active' && (
-            <Badge colorScheme="blue" variant="solid" fontSize="xs">
+            <Badge
+              colorScheme="blue"
+              variant="solid"
+              fontSize="xs"
+              animation="fadeIn 0.3s ease-in-out"
+            >
               IN PROGRESS
             </Badge>
           )}

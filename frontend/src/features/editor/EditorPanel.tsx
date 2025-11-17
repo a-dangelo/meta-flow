@@ -38,6 +38,7 @@ interface EditorPanelProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit?: () => void;
+  onReset?: () => void;
   isGenerating?: boolean;
 }
 
@@ -64,6 +65,7 @@ export function EditorPanel({
   value,
   onChange,
   onSubmit,
+  onReset,
   isGenerating = false,
 }: EditorPanelProps) {
   const toast = useToast();
@@ -191,13 +193,14 @@ export function EditorPanel({
   const handleClear = useCallback(() => {
     onChange('');
     selectExample(null);
+    onReset?.(); // Reset pipeline state
     toast({
       title: 'Editor cleared',
       status: 'info',
       duration: 2000,
       isClosable: true,
     });
-  }, [onChange, selectExample, toast]);
+  }, [onChange, selectExample, onReset, toast]);
 
   /**
    * Reset to template
