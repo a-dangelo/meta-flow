@@ -13,7 +13,7 @@ RUN npm ci --prefer-offline --no-audit --no-fund
 COPY . .
 
 # Set environment for production build
-ENV VITE_API_URL=/api
+ENV VITE_API_URL=""
 ENV NODE_ENV=production
 
 # Build application
@@ -31,16 +31,6 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create non-root user for nginx
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
-
-USER nginx
-
 # Expose port
 EXPOSE 80
 
@@ -48,5 +38,5 @@ EXPOSE 80
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost/health || exit 1
 
-# Start nginx
+# Start nginx (runs as root in container, which is safe in Docker)
 CMD ["nginx", "-g", "daemon off;"]

@@ -21,22 +21,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user for security (do this early)
+RUN useradd -m -u 1000 appuser
+
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
+# Copy installed packages from builder to appuser's home
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
-# Copy application code
-COPY src/ ./src/
-COPY api/ ./api/
-COPY specs/ ./specs/
+# Copy application code with correct ownership
+COPY --chown=appuser:appuser src/ ./src/
+COPY --chown=appuser:appuser api/ ./api/
+COPY --chown=appuser:appuser specs/ ./specs/
 
-# Add local packages to PATH
-ENV PATH=/root/.local/bin:$PATH
-ENV PYTHONPATH=/app:$PYTHONPATH
+# Add local packages to PATH (use appuser's home)
+ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONPATH=/app
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Switch to non-root user
 USER appuser
 
 # Expose port

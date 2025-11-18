@@ -41,7 +41,7 @@ app = FastAPI(
 # Security: Trusted Host Middleware
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0", "*.anthropic.com"]
+    allowed_hosts=["localhost", "127.0.0.1", "0.0.0.0", "backend", "*.anthropic.com"]
 )
 
 # CORS Middleware for frontend development

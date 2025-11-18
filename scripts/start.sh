@@ -175,7 +175,7 @@ if [ -n "$DETACH_FLAG" ]; then
     echo -e "${GREEN}      Meta-Flow is ready!${NC}"
     echo -e "${GREEN}============================================${NC}"
     echo ""
-    echo -e "🌐 Frontend:  ${BLUE}http://localhost${NC}"
+    echo -e "🌐 Frontend:  ${BLUE}http://localhost:3001${NC}"
     echo -e "🔧 Backend:   ${BLUE}http://localhost:8000${NC}"
     echo -e "📚 API Docs:  ${BLUE}http://localhost:8000/docs${NC}"
     echo ""

@@ -10,6 +10,12 @@ Meta-Flow operates in two phases:
 
 ## Quick Start
 
+Choose your preferred interface:
+- **Web UI (Recommended)**: Visual interface with real-time generation → [Docker Deployment](#docker-deployment-recommended)
+- **CLI**: Command-line interface for automation → [CLI Usage](#cli-usage)
+
+### Quick CLI Example
+
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/meta-flow.git
@@ -51,11 +57,21 @@ cp .env.docker.example .env
 # 3. Start services (one command!)
 ./scripts/start.sh
 
-# 4. Access application
-# Frontend: http://localhost
-# Backend: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+# 4. Access the Web Interface
+# 🌐 Open http://localhost:3001 in your browser
+#
+# You'll see the Meta-Flow Agent Generator with:
+# - Workflow editor with syntax highlighting
+# - Example templates to get started
+# - Real-time generation pipeline
+# - Generated Python code and JSON output
+#
+# API endpoints:
+# - Backend: http://localhost:8000
+# - API Docs: http://localhost:8000/docs
 ```
+
+That's it! The web interface is now running. See the [Web Interface](#web-interface) section below for a detailed tour.
 
 ### Docker Commands
 
@@ -109,7 +125,7 @@ docker-compose ps
 curl http://localhost:8000/api/health
 
 # Test frontend nginx
-curl http://localhost/health
+curl http://localhost:3001/health
 ```
 
 **Issue: Port already in use**
@@ -118,6 +134,73 @@ curl http://localhost/health
 # Frontend: Change "80:80" to "3000:80"
 # Backend: Change "8000:8000" to "8001:8000"
 ```
+
+## Web Interface
+
+Meta-Flow provides a modern web interface that makes workflow creation intuitive and visual. The interface guides you through the entire process from specification to generated code.
+
+### Features
+
+- **Three-Panel Layout**: Editor, visualizer, and output panels for comprehensive workflow management
+- **Syntax Highlighting**: Color-coded specifications and generated code for easy reading
+- **Example Templates**: Pre-built workflow templates to get you started quickly
+- **Real-Time Generation**: Watch the generation pipeline progress step-by-step
+- **Dark Mode Support**: Easy on the eyes for extended usage
+- **Multiple Output Formats**: View generated Python code, JSON AST, and metadata
+
+### Main Editor Interface
+
+![Meta-Flow Editor](artifacts/image_1.png)
+
+The editor provides a clean interface for writing workflow specifications:
+- **Workflow Type Selector**: Choose from sequential, conditional, parallel, or orchestrator patterns
+- **Specification Editor**: Write natural language workflow descriptions with syntax highlighting
+- **Generate Button**: One-click transformation to executable agent code
+- **Backend Status**: Real-time connection status to ensure everything is working
+
+### Generation Pipeline & Results
+
+![Generation Pipeline](artifacts/image_2.png)
+
+Watch your specification transform into code:
+- **Progress Tracking**: Visual feedback for each pipeline stage
+- **Generated Code**: Syntax-highlighted Python agent with proper structure
+- **JSON AST Tab**: View the intermediate JSON representation
+- **Metadata Tab**: Access generation details and configuration
+
+### Getting Started with the Web Interface
+
+1. **Access the Interface**: Navigate to `http://localhost:3001` after starting Docker services
+2. **Load an Example**: Click on any example from the dropdown to see a complete specification
+3. **Write Your Workflow**: Modify the example or write your own following the format
+4. **Generate Agent**: Click "Generate Agent" to create your Python code
+5. **Download Results**: Copy the generated code or download as a file
+
+### Local Development (Frontend Only)
+
+If you want to run the frontend separately for development:
+
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Configure environment (uses Vite proxy for API calls)
+cp .env.example .env
+
+# Start development server
+npm run dev
+
+# Access at http://localhost:5173
+```
+
+**Important Notes**:
+- Ensure the backend is running at `http://localhost:8000` before starting frontend
+- The frontend uses Vite's built-in proxy to forward `/api/*` requests to the backend
+- Keep `VITE_API_URL` empty in `.env` to use the proxy (recommended)
+- This avoids CORS issues and mirrors the production nginx proxy setup
 
 ## Prerequisites (Manual Installation)
 
@@ -243,8 +326,18 @@ meta-flow/
 │   │   └── agent_generator.py  # JSON to Python transformation
 │   └── cli/
 │       └── complete_pipeline.py  # Main CLI interface
+├── api/                     # FastAPI backend
+│   └── main.py             # REST API endpoints
+├── frontend/               # React web interface
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── features/       # Feature modules (editor, generator)
+│   │   ├── hooks/          # Custom React hooks
+│   │   └── services/       # API client
+│   └── Dockerfile          # Frontend container configuration
 ├── specs/examples/          # Example workflow specifications
 ├── generated_agents/        # Output directory for generated agents
+├── docker-compose.yml       # Multi-container orchestration
 └── requirements.txt         # Python dependencies
 ```
 
@@ -347,6 +440,38 @@ venv\Scripts\activate     # Windows
 ```bash
 # Test API key validity
 python -c "from anthropic import Anthropic; c=Anthropic(); print('API key valid')"
+```
+
+### Frontend Issues
+
+**CORS Errors in Console**
+```bash
+# Ensure backend is running and accessible
+curl http://localhost:8000/api/health
+
+# Check VITE_API_URL in frontend/.env
+# Should be: VITE_API_URL=http://localhost:8000 (for local dev)
+# Or empty for Docker deployment
+```
+
+**Build Failures**
+```bash
+# Check Node version (requires 18+)
+node --version
+
+# Clean install dependencies
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**Connection to Backend Failed**
+```bash
+# For Docker: Services should be on same network
+docker-compose ps  # Both should show "healthy"
+
+# For local dev: Check backend is running
+lsof -i :8000  # Should show uvicorn process
 ```
 
 ## License

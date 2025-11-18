@@ -23,24 +23,30 @@ class EnvironmentError extends Error {
  * Validates and returns environment configuration
  */
 function validateEnv(): EnvConfig {
-  const API_URL = import.meta.env.VITE_API_URL;
+  // Allow empty string for Docker (nginx proxy handles routing)
+  const API_URL = import.meta.env.VITE_API_URL ?? '';
 
-  if (!API_URL) {
-    throw new EnvironmentError(
-      'Missing required environment variable: VITE_API_URL\n' +
-      'Please create a .env file in the frontend directory with:\n' +
-      'VITE_API_URL=http://localhost:8000'
-    );
-  }
+  // Empty string is valid for Docker deployment
+  if (API_URL !== '') {
+    // Validate URL format (allow relative paths for Docker/nginx proxy)
+    if (!API_URL.startsWith('/') && !API_URL.startsWith('http://') && !API_URL.startsWith('https://')) {
+      throw new EnvironmentError(
+        `Invalid API URL format: ${API_URL}\n` +
+        'VITE_API_URL must be a valid URL (e.g., http://localhost:8000) or relative path (e.g., /api) or empty for Docker'
+      );
+    }
 
-  // Validate URL format
-  try {
-    new URL(API_URL);
-  } catch {
-    throw new EnvironmentError(
-      `Invalid API URL format: ${API_URL}\n` +
-      'VITE_API_URL must be a valid URL (e.g., http://localhost:8000)'
-    );
+    // If it's an absolute URL, validate it
+    if (API_URL.startsWith('http')) {
+      try {
+        new URL(API_URL);
+      } catch {
+        throw new EnvironmentError(
+          `Invalid API URL format: ${API_URL}\n` +
+          'VITE_API_URL must be a valid URL (e.g., http://localhost:8000)'
+        );
+      }
+    }
   }
 
   return {
