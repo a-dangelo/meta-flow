@@ -193,7 +193,7 @@ cp .env.example .env
 # Start development server
 npm run dev
 
-# Access at http://localhost:5173
+# Access at http://localhost:3002
 ```
 
 **Important Notes**:
@@ -450,8 +450,9 @@ python -c "from anthropic import Anthropic; c=Anthropic(); print('API key valid'
 curl http://localhost:8000/api/health
 
 # Check VITE_API_URL in frontend/.env
-# Should be: VITE_API_URL=http://localhost:8000 (for local dev)
-# Or empty for Docker deployment
+# Should be empty to use proxy (recommended for both local and Docker)
+# Vite proxy: http://localhost:3002 → http://localhost:8000
+# Docker proxy: nginx → backend:8000
 ```
 
 **Build Failures**

@@ -21,7 +21,7 @@ export default defineConfig({
 
   // Development server configuration
   server: {
-    port: 5173,
+    port: 3002,  // Changed from 5173 to avoid Codespaces port conflict
     open: false,
     cors: true,
     proxy: {
