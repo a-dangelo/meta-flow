@@ -27,7 +27,99 @@ echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 python -m src.cli.complete_pipeline specs/examples/simple_sequential.txt
 ```
 
-## Prerequisites
+## Docker Deployment (Recommended)
+
+The easiest way to run Meta-Flow is using Docker, which packages all dependencies and provides a production-ready environment.
+
+### Docker Prerequisites
+
+- **Docker Engine**: 20.10 or higher ([Install Docker](https://docs.docker.com/get-docker/))
+- **Docker Compose**: 2.0 or higher (included with Docker Desktop)
+- **LLM API Key**: At least one provider key (Anthropic, AIMLAPI, or Gemini)
+
+### Docker Quick Start
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/meta-flow.git
+cd meta-flow
+
+# 2. Configure environment
+cp .env.docker.example .env
+# Edit .env and add your API key(s)
+
+# 3. Start services (one command!)
+./scripts/start.sh
+
+# 4. Access application
+# Frontend: http://localhost
+# Backend: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+### Docker Commands
+
+```bash
+# Start services (with build)
+./scripts/start.sh
+
+# Start in background
+./scripts/start.sh -d
+
+# Start without rebuilding
+./scripts/start.sh --no-build
+
+# Stop services
+./scripts/stop.sh
+
+# View logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Restart services
+docker-compose restart
+
+# Rebuild images (force clean build)
+docker-compose build --no-cache
+```
+
+### Docker Troubleshooting
+
+**Issue: Backend fails to start**
+```bash
+# Check logs
+docker-compose logs backend
+
+# Verify API key is set
+docker-compose exec backend env | grep API_KEY
+
+# Test health endpoint
+curl http://localhost:8000/api/health
+```
+
+**Issue: Frontend can't connect to backend**
+```bash
+# Check if both services are healthy
+docker-compose ps
+
+# Test backend directly
+curl http://localhost:8000/api/health
+
+# Test frontend nginx
+curl http://localhost/health
+```
+
+**Issue: Port already in use**
+```bash
+# Change ports in docker-compose.yml:
+# Frontend: Change "80:80" to "3000:80"
+# Backend: Change "8000:8000" to "8001:8000"
+```
+
+## Prerequisites (Manual Installation)
 
 - **Python**: 3.12 or higher.
 - **LLM API Key**: Every provider lets you get their own API key. For example for Anthropic API keys, you an obtain one from [Anthropic Console](https://console.anthropic.com/).

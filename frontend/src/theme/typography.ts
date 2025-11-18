@@ -1,12 +1,13 @@
 /**
  * Typography Theme Configuration
  * Consistent font system for Meta-Flow frontend
+ * Using Lato for improved readability in technical content
  */
 
 export const typography = {
   fonts: {
-    heading: '"Inter", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif',
-    body: '"Inter", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif',
+    heading: '"Lato", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif',
+    body: '"Lato", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif',
     mono: '"Fira Code", "Roboto Mono", "SF Mono", "Courier New", monospace',
   },
   fontSizes: {

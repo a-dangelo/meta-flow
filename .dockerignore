@@ -1,0 +1,58 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Frontend (not needed in backend container)
+frontend/
+
+# Logs and artifacts
+logs/
+artifacts/
+generated_agents/
+*.log
+
+# Environment files (secrets)
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+tests/
+test_*.py
+*_test.py
+
+# Shell scripts at root (we've moved them to scripts/)
+*.sh

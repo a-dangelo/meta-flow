@@ -3,7 +3,7 @@
  * Monaco editor for workflow specifications with lazy loading
  */
 
-import { Suspense, lazy, useCallback, useRef } from 'react';
+import { Suspense, lazy, useCallback, useRef, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -30,6 +30,7 @@ import {
   StarIcon,
 } from '@chakra-ui/icons';
 import { useExamples } from '@/hooks/useExamples';
+import type { editor } from 'monaco-editor';
 
 // Lazy load Monaco Editor (5MB bundle)
 const MonacoEditor = lazy(() => import('@monaco-editor/react'));
@@ -70,6 +71,8 @@ export function EditorPanel({
 }: EditorPanelProps) {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const { examples = [], loading: examplesLoading, selectedExample, selectExample } = useExamples();
 
   // Dark mode color values
@@ -227,6 +230,54 @@ export function EditorPanel({
     },
     [onChange]
   );
+
+  /**
+   * Handle editor mount - store reference and setup scroll passthrough
+   */
+  const handleEditorMount = useCallback((editorInstance: editor.IStandaloneCodeEditor) => {
+    editorRef.current = editorInstance;
+
+    // Setup wheel event handler for scroll passthrough
+    const domNode = editorInstance.getDomNode();
+    if (domNode) {
+      const handleWheel = (e: WheelEvent) => {
+        const scrollTop = editorInstance.getScrollTop();
+        const scrollHeight = editorInstance.getScrollHeight();
+        const editorHeight = editorInstance.getLayoutInfo().height;
+
+        // Check if we're at the boundaries
+        const atTop = scrollTop <= 0;
+        const atBottom = scrollTop >= scrollHeight - editorHeight;
+
+        // If scrolling up at top or down at bottom, allow parent scroll
+        if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+          // Don't prevent default - let the event bubble to parent
+          return;
+        }
+
+        // Otherwise, let Monaco handle the scroll
+        e.stopPropagation();
+      };
+
+      // Add wheel listener with passive flag for better performance
+      domNode.addEventListener('wheel', handleWheel, { passive: true });
+
+      // Cleanup on unmount
+      return () => {
+        domNode.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, []);
+
+  /**
+   * Setup scroll passthrough when editor container changes
+   */
+  useEffect(() => {
+    if (editorContainerRef.current) {
+      // Ensure the container allows overflow
+      editorContainerRef.current.style.overflowY = 'auto';
+    }
+  }, []);
 
   return (
     <VStack spacing={5} align="stretch">
@@ -396,10 +447,11 @@ export function EditorPanel({
 
       {/* Monaco Editor */}
       <Box
+        ref={editorContainerRef}
         border="1px solid"
         borderColor={useColorModeValue('gray.300', 'gray.600')}
         borderRadius="lg"
-        overflow="hidden"
+        overflow="auto"
         height="420px"
         minH="420px"
         shadow="sm"
@@ -431,6 +483,7 @@ export function EditorPanel({
             defaultLanguage="plaintext"
             value={value}
             onChange={handleEditorChange}
+            onMount={handleEditorMount}
             theme={editorTheme}
             options={{
               minimap: { enabled: false },
@@ -446,6 +499,15 @@ export function EditorPanel({
               tabSize: 2,
               fontFamily: '"Fira Code", "Roboto Mono", monospace',
               fontLigatures: true,
+              // Scroll-related options for better passthrough
+              mouseWheelZoom: false,
+              scrollbar: {
+                alwaysConsumeMouseWheel: false,
+                verticalScrollbarSize: 10,
+                horizontalScrollbarSize: 10,
+                useShadows: false,
+              },
+              overviewRulerLanes: 0,
             }}
           />
         </Suspense>
