@@ -33,10 +33,6 @@ pip install --upgrade pip
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
-# Install package in editable mode
-echo "Installing meta-flow in editable mode..."
-pip install -e .
-
 # Create necessary directories
 echo "Creating necessary directories..."
 mkdir -p specs/examples

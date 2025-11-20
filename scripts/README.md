@@ -10,7 +10,6 @@ Automated development environment setup script.
 - Checks Python version (requires 3.9+)
 - Creates `.venv` virtual environment
 - Installs all dependencies from `requirements.txt`
-- Installs the package in editable mode
 - Creates necessary directories
 
 **Usage:**
@@ -27,5 +26,4 @@ source .venv/bin/activate
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pip install -e .
 ```
