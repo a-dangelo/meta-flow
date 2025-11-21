@@ -142,6 +142,10 @@ async def generate_agent_node(state: WorkflowState) -> Dict:
 
     except Exception as e:
         elapsed = time.time() - start_time
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"ERROR in generate_agent_node: {str(e)}")
+        print(f"Traceback:\n{error_trace}")
         return {
             "error_message": f"Agent generation failed: {str(e)}",
             "execution_status": "failed",

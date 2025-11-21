@@ -115,6 +115,9 @@ async def test_chat_flow():
             print(f"Workflow: {data.get('matched_workflow')}")
             print(f"Confidence: {data.get('search_confidence', 0):.2%}")
 
+            if data.get("error_message"):
+                print(f"ERROR: {data['error_message']}")
+
             if data.get("message"):
                 print(f"Agent: {data['message'][:200]}...")
 

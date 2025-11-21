@@ -1,0 +1,19 @@
+Workflow: data_processing_pipeline
+Description: Simple sequential workflow for processing customer data
+Access: employee
+Category: test
+
+Inputs:
+- customer_id (string): The customer ID to process
+- database_url (string): Database connection URL
+
+Steps:
+1. Fetch customer data from database using customer_id
+2. Validate customer data format and completeness
+3. Calculate customer lifetime value based on purchase history
+4. Update customer record with calculated metrics
+
+Outputs:
+- customer_data (object): Complete customer profile
+- lifetime_value (float): Calculated customer lifetime value
+- update_status (boolean): Whether the update was successful

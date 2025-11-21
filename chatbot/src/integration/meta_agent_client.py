@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
 from src.agents.graph import run_meta_agent
 from src.generators.agent_generator import AgentGenerator
+from src.core.workflow_ast import WorkflowSpec
 
 
 class MetaAgentClient:
@@ -42,24 +43,29 @@ class MetaAgentClient:
             ValueError: If meta-agent fails or validation errors
         """
         # Phase 1: Run meta-agent to generate JSON
-        result = await run_meta_agent(
+        # Note: run_meta_agent is synchronous, not async
+        result = run_meta_agent(
             raw_spec=spec_content,
-            provider_name=provider,
+            llm_provider=provider,
             model_version=model_version
         )
 
         # Check for errors
-        if result.get("execution_status") != "completed":
+        # Note: meta-agent returns "complete" not "completed"
+        if result.get("execution_status") != "complete":
             error_msg = result.get("error_message", "Unknown error")
             raise ValueError(f"Meta-agent generation failed: {error_msg}")
 
-        # Get WorkflowSpec Pydantic model
-        workflow_spec = result.get("workflow_spec")
-        if not workflow_spec:
+        # Get workflow_spec dict from result
+        workflow_spec_dict = result.get("workflow_spec")
+        if not workflow_spec_dict:
             raise ValueError("No workflow_spec in meta-agent result")
 
+        # Convert dict to WorkflowSpec Pydantic model
+        workflow_spec = WorkflowSpec.from_dict(workflow_spec_dict)
+
         # Convert to dict for JSON output
-        json_output = workflow_spec.model_dump()
+        json_output = workflow_spec.to_dict()
 
         # Phase 2: Generate Python code
         generator = AgentGenerator(workflow_spec)

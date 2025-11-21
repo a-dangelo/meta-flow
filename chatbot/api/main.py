@@ -39,7 +39,13 @@ async def lifespan(app: FastAPI):
     Initializes resources on startup and cleans up on shutdown.
     """
     # Startup
-    logger.info("Starting chatbot API...")
+    logger.info("=" * 80)
+    logger.info("🤖 Meta-Flow Chatbot API")
+    logger.info("=" * 80)
+    logger.info("Version: 1.0.0")
+    logger.info("Docs: http://localhost:8000/docs")
+    logger.info("Health: http://localhost:8000/health")
+    logger.info("=" * 80)
 
     # Verify environment variables are loaded
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -57,6 +63,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"✗ Failed to load workflows: {e}")
 
     logger.info("Chatbot API started successfully")
+    logger.info("=" * 80)
 
     yield
 
@@ -226,18 +233,7 @@ app.include_router(
 )
 
 
-# ==================== STARTUP MESSAGE ====================
-
-@app.on_event("startup")
-async def startup_message():
-    """Print startup message."""
-    logger.info("=" * 80)
-    logger.info("🤖 Meta-Flow Chatbot API")
-    logger.info("=" * 80)
-    logger.info(f"Version: 1.0.0")
-    logger.info(f"Docs: http://localhost:8000/docs")
-    logger.info(f"Health: http://localhost:8000/health")
-    logger.info("=" * 80)
+# Note: Startup message moved to lifespan context manager above
 
 
 if __name__ == "__main__":
