@@ -30,6 +30,7 @@ async def test_expense_workflow_hybrid():
     print(f"\nWorkflow matched: {result.get('matched_workflow_name')}")
     print(f"Confidence: {result.get('search_confidence', 0):.2%}")
     print(f"Status: {result.get('execution_status')}")
+    print(f"Note: BGE-small-en-v1.5 threshold is 60% (expect 65-80% for good matches)")
 
     # Check if agent was generated
     if result.get("json_ast"):

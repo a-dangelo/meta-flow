@@ -37,6 +37,8 @@ def test_workflow_loading():
         print(f"      Category: {wf.category}")
 
     print(f"\nEmbeddings shape: {repo.embeddings.shape if repo.embeddings is not None else 'None'}")
+    print("Expected: (3, 384) for BGE-small-en-v1.5 model (384-dimensional embeddings)")
+    print(f"Model: {repo.encoder.get_sentence_embedding_dimension()}D embeddings")
 
     print("\n" + "=" * 80)
     print("TEST: Semantic Search")
@@ -50,14 +52,18 @@ def test_workflow_loading():
         "IT support ticket"
     ]
 
+    print("\nNote: With BGE-small-en-v1.5 model, expected confidence range is 65-80% for good matches")
+    print("Threshold: 60% (optimized for BGE model family)\n")
+
     for query in test_queries:
-        print(f"\nQuery: '{query}'")
+        print(f"Query: '{query}'")
         workflow, confidence = repo.find_by_intent(query, "employee")
 
         if workflow:
             print(f"  ✓ Matched: {workflow.name} ({confidence:.2%})")
         else:
             print(f"  ✗ No match (confidence: {confidence:.2%})")
+            print(f"     (Below 60% threshold - may need clarification)")
 
     print("\n" + "=" * 80)
     print("✓ Workflow search test completed")

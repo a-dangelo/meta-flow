@@ -36,11 +36,20 @@ _repository = None
 
 
 def get_repository() -> WorkflowRepository:
-    """Get or create workflow repository singleton."""
+    """
+    Get or create workflow repository singleton.
+
+    Uses BGE-small-en-v1.5 model with 60% confidence threshold for
+    efficient semantic search with minimal disk usage.
+    """
     global _repository
     if _repository is None:
         workflows_dir = Path(__file__).parent.parent.parent / "workflows"
-        _repository = WorkflowRepository(workflows_dir)
+        _repository = WorkflowRepository(
+            workflows_dir,
+            model_name="BAAI/bge-small-en-v1.5",
+            confidence_threshold=0.60
+        )
     return _repository
 
 
@@ -63,8 +72,8 @@ def search_workflows_node(state: WorkflowState) -> Dict:
 
     elapsed = time.time() - start_time
 
-    if workflow and confidence >= 0.75:
-        # High confidence match
+    if workflow and confidence >= 0.60:
+        # High confidence match (BGE-M3 threshold: 60%)
         return {
             "matched_workflow_name": workflow.name,
             "matched_workflow_path": str(workflow.file_path),

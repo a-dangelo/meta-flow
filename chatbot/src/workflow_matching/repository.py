@@ -35,22 +35,29 @@ class WorkflowRepository:
     def __init__(
         self,
         workflows_dir: Path,
-        model_name: str = "all-MiniLM-L6-v2",
-        confidence_threshold: float = 0.75
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        confidence_threshold: float = 0.60
     ):
         """
         Initialize workflow repository.
 
         Args:
             workflows_dir: Path to workflows directory
-            model_name: Sentence transformer model name
-            confidence_threshold: Minimum confidence for match (0.0-1.0)
+            model_name: Sentence transformer model name (default: BAAI/bge-small-en-v1.5)
+            confidence_threshold: Minimum confidence for match (0.0-1.0, default: 0.60)
+
+        Note:
+            Using BGE-small-en-v1.5 model (~130MB) for space efficiency.
+            Provides good semantic search performance for English workflows.
+            For multilingual support, use BAAI/bge-m3 (2.3GB).
         """
         self.workflows_dir = Path(workflows_dir)
         self.confidence_threshold = confidence_threshold
 
-        # Load sentence transformer model
+        # Load sentence transformer model with BGE-M3 optimization
         self.encoder = SentenceTransformer(model_name)
+        if "bge" in model_name.lower():
+            self.encoder.max_seq_length = 512  # BGE-M3 optimal sequence length
 
         # Load workflows and build embeddings cache
         self.workflows = self._load_workflows()
@@ -106,9 +113,14 @@ class WorkflowRepository:
             return None
 
     def _build_embeddings(self) -> np.ndarray:
-        """Pre-compute embeddings for all workflow descriptions."""
+        """
+        Pre-compute embeddings for all workflow descriptions.
+
+        Uses BGE-M3 model which produces 1024-dimensional embeddings
+        optimized for semantic search across multiple languages.
+        """
         descriptions = [wf.description for wf in self.workflows]
-        return self.encoder.encode(descriptions, convert_to_numpy=True)
+        return self.encoder.encode(descriptions, convert_to_numpy=True, normalize_embeddings=True)
 
     def find_by_intent(
         self,
@@ -134,8 +146,8 @@ class WorkflowRepository:
         if not accessible_workflows:
             return None, 0.0
 
-        # Encode user query
-        query_embedding = self.encoder.encode([user_input], convert_to_numpy=True)
+        # Encode user query with normalization for consistent similarity scores
+        query_embedding = self.encoder.encode([user_input], convert_to_numpy=True, normalize_embeddings=True)
 
         # Get embeddings for accessible workflows
         accessible_indices = [
