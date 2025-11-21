@@ -1,0 +1,11 @@
+# Chatbot-specific dependencies
+# Note: Main dependencies (langgraph, langchain, anthropic, fastapi, pydantic)
+# are already in /requirements.txt at project root
+
+# Semantic search for workflow matching (NEW - not in root)
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+numpy>=1.24.0
+
+# Additional utilities
+aiofiles>=23.0.0

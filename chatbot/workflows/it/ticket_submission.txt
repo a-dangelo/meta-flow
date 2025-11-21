@@ -1,0 +1,30 @@
+Workflow: it_ticket_submission
+Description: Submit IT support tickets with intelligent routing based on issue type and automated priority assignment
+Access: employee
+Category: it
+
+Inputs:
+- issue_type (string): Type of IT issue (hardware, software, network, access, other)
+- priority (string): Priority level (low, medium, high, critical)
+- description (string): Detailed description of the issue
+- device_id (string): Device identifier or hostname
+- employee_id (string): Employee submitting ticket
+- location (string): Physical location of employee or device
+
+Steps:
+1. Validate issue description is not empty
+2. Check if device_id exists in asset management system
+3. Search knowledge base for similar resolved issues
+4. If similar issue found, suggest self-service solution to employee
+5. If employee declines self-service or no solution found, create new ticket
+6. Route ticket based on issue_type: hardware to field support, software to app team, network to infrastructure team, access to security team
+7. Assign ticket to available support agent in appropriate team
+8. Send confirmation email to employee with ticket number
+9. Send notification to assigned support agent
+10. Update IT dashboard with new ticket metrics
+
+Outputs:
+- ticket_id (string): Unique ticket identifier
+- assigned_agent (string): Name of assigned support agent
+- estimated_resolution_time (string): Expected resolution timeframe
+- self_service_solution (string): Link to knowledge base article if available
