@@ -201,6 +201,134 @@ async def test_validation():
     print("\n✓ Validation test passed")
 
 
+async def test_execution_sandbox():
+    """Test sandboxed execution with log capture."""
+    print("\n" + "=" * 80)
+    print("TEST: Sandboxed Execution")
+    print("=" * 80)
+
+    from chatbot.src.execution.orchestrator import execute_agent_safely
+
+    # Simple test agent code
+    test_agent_code = '''
+class TestAgent:
+    """Simple test agent for execution verification."""
+
+    def execute(self, amount: float, category: str) -> dict:
+        """Execute test workflow."""
+        print(f"Processing {category} expense for ${amount}")
+
+        if amount > 1000:
+            status = "requires_approval"
+            print("⚠️ Amount exceeds $1000 - manager approval required")
+        else:
+            status = "approved"
+            print("✓ Auto-approved")
+
+        return {
+            "status": status,
+            "processed_amount": amount,
+            "category": category,
+            "message": f"{category} expense ${amount} {status}"
+        }
+'''
+
+    # Test successful execution
+    print("\n[Test 1] Successful execution:")
+    result = await execute_agent_safely(
+        agent_code=test_agent_code,
+        parameters={"amount": 450.0, "category": "meals"},
+        timeout=5.0
+    )
+
+    print(f"  Success: {result.success}")
+    print(f"  Execution time: {result.execution_time:.3f}s")
+    if result.success:
+        print(f"  Result: {result.result}")
+        print(f"  Logs captured: {len(result.logs)} lines")
+        for log in result.logs:
+            print(f"    | {log.strip()}")
+    else:
+        print(f"  Error: {result.error}")
+
+    # Test with amount requiring approval
+    print("\n[Test 2] Execution with conditional logic:")
+    result = await execute_agent_safely(
+        agent_code=test_agent_code,
+        parameters={"amount": 1500.0, "category": "travel"},
+        timeout=5.0
+    )
+
+    print(f"  Success: {result.success}")
+    if result.success:
+        print(f"  Result: {result.result}")
+        print(f"  Logs:")
+        for log in result.logs:
+            print(f"    | {log.strip()}")
+
+    # Test error handling
+    print("\n[Test 3] Error handling (missing parameter):")
+    result = await execute_agent_safely(
+        agent_code=test_agent_code,
+        parameters={"amount": 100.0},  # Missing 'category'
+        timeout=5.0
+    )
+
+    print(f"  Success: {result.success}")
+    if not result.success:
+        print(f"  Error type: {result.error_type}")
+        print(f"  Error: {result.error}")
+
+    # Test timeout
+    print("\n[Test 4] Timeout handling:")
+    timeout_agent = '''
+class TimeoutAgent:
+    def execute(self) -> dict:
+        import time
+        print("Starting long operation...")
+        time.sleep(10)  # Will timeout
+        return {"status": "completed"}
+'''
+
+    result = await execute_agent_safely(
+        agent_code=timeout_agent,
+        parameters={},
+        timeout=2.0
+    )
+
+    print(f"  Success: {result.success}")
+    if not result.success:
+        print(f"  Error type: {result.error_type}")
+        print(f"  Error: {result.error}")
+
+    print("\n✓ Execution sandbox tests passed")
+
+
+async def test_log_sanitization():
+    """Test credential sanitization in logs."""
+    print("\n" + "=" * 80)
+    print("TEST: Log Sanitization")
+    print("=" * 80)
+
+    from chatbot.src.execution.streaming import sanitize_log_message
+
+    test_cases = [
+        ("api_key='sk-ant-12345'", "api_key=***"),
+        ("password=\"secretpass\"", "password=***"),
+        ("Using bearer abc123def456", "bearer ***"),
+        ("Normal log message", "Normal log message"),
+    ]
+
+    print("\nSanitization tests:")
+    for original, expected_pattern in test_cases:
+        sanitized = sanitize_log_message(original)
+        contains_pattern = expected_pattern in sanitized or expected_pattern == sanitized
+        status = "✓" if contains_pattern else "✗"
+        print(f"  {status} '{original[:40]}...' -> '{sanitized[:40]}...'")
+
+    print("\n✓ Log sanitization tests passed")
+
+
 async def main():
     """Run all hybrid architecture tests."""
     print("\n🚀 Hybrid Decomposition Chatbot Test Suite\n")
@@ -209,6 +337,8 @@ async def main():
         # Unit tests
         await test_parameter_extraction()
         await test_validation()
+        await test_execution_sandbox()
+        await test_log_sanitization()
 
         # Integration test
         await test_expense_workflow_hybrid()

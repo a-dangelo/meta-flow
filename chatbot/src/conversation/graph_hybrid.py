@@ -29,6 +29,10 @@ from chatbot.src.parameter_handling.validator import (
     validate_all_parameters,
     get_missing_required_parameters
 )
+from chatbot.src.execution.orchestrator import (
+    execute_agent_safely,
+    validate_execution_inputs
+)
 
 
 # Global repository singleton
@@ -312,34 +316,85 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
             }
 
 
-def execute_workflow_node(state: WorkflowState) -> Dict:
+async def execute_workflow_node(state: WorkflowState) -> Dict:
     """
-    Execute the generated workflow agent (MVP: simulated).
+    Execute the generated workflow agent in sandboxed environment.
+
+    Uses the execution orchestrator to safely run the agent with
+    validated parameters, capturing logs and handling errors.
     """
     start_time = time.time()
 
     workflow_name = state.get("matched_workflow_name", "unknown")
+    python_code = state.get("python_code")
     parameters = state.get("collected_parameters", {})
 
-    # MVP: Simulated execution
-    import random
-    reference_id = f"REF-{random.randint(1000, 9999)}"
+    # Validate inputs
+    error = validate_execution_inputs(python_code, parameters)
+    if error:
+        elapsed = time.time() - start_time
+        return {
+            "error_message": error,
+            "execution_status": "failed",
+            "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
+        }
 
-    result = {
-        "workflow": workflow_name,
-        "status": "simulated",
-        "reference_id": reference_id,
-        "message": f"Workflow '{workflow_name}' executed successfully (simulated for MVP)",
-        "parameters": parameters
-    }
+    # Execute agent safely
+    execution_logs = []
 
-    elapsed = time.time() - start_time
+    def log_callback(message: str):
+        """Capture logs during execution."""
+        execution_logs.append(message)
 
-    return {
-        "execution_result": result,
-        "execution_status": "completed",
-        "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
-    }
+    try:
+        result = await execute_agent_safely(
+            agent_code=python_code,
+            parameters=parameters,
+            log_callback=log_callback,
+            timeout=30.0
+        )
+
+        elapsed = time.time() - start_time
+
+        if result.success:
+            # Generate reference ID for tracking
+            import random
+            reference_id = f"REF-{random.randint(1000, 9999)}"
+
+            execution_result = {
+                "workflow": workflow_name,
+                "status": "completed",
+                "reference_id": reference_id,
+                "result": result.result,
+                "parameters": parameters,
+                "logs": result.logs,
+                "execution_time": result.execution_time
+            }
+
+            return {
+                "execution_result": execution_result,
+                "execution_logs": result.logs,
+                "execution_status": "completed",
+                "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
+            }
+        else:
+            # Execution failed
+            return {
+                "error_message": result.error,
+                "error_type": result.error_type,
+                "execution_logs": result.logs,
+                "execution_status": "failed",
+                "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
+            }
+
+    except Exception as e:
+        elapsed = time.time() - start_time
+        return {
+            "error_message": f"Unexpected error during execution: {str(e)}",
+            "execution_logs": execution_logs,
+            "execution_status": "failed",
+            "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
+        }
 
 
 # ==================== ROUTING FUNCTIONS ====================
