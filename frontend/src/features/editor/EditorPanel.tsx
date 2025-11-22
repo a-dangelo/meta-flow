@@ -77,7 +77,7 @@ export function EditorPanel({
 
   // Dark mode color values
   const editorTheme = useColorModeValue('vs-light', 'vs-dark');
-  const spinnerBg = useColorModeValue('gray.50', 'gray.800');
+  const spinnerBg = useColorModeValue('#f7f4ef', '#171c23');
 
   /**
    * Handle example selection
@@ -283,11 +283,11 @@ export function EditorPanel({
     <VStack spacing={5} align="stretch">
       {/* Enhanced Toolbar */}
       <Box
-        bg={useColorModeValue('white', 'gray.800')}
+        bg={useColorModeValue('#fcfbf7', '#171c23')}
         p={4}
         borderRadius="lg"
         border="1px solid"
-        borderColor={useColorModeValue('gray.200', 'gray.600')}
+        borderColor={useColorModeValue('#e0ddd4', '#2a3038')}
         shadow="sm"
       >
         <Flex align="center" gap={3} flexWrap={{ base: 'wrap', md: 'nowrap' }}>
@@ -301,11 +301,11 @@ export function EditorPanel({
             size="sm"
             borderRadius="md"
             _hover={{
-              borderColor: 'blue.400',
+              borderColor: useColorModeValue('#5b646a', '#9aa6b4'),
             }}
             _focus={{
-              borderColor: 'blue.500',
-              boxShadow: '0 0 0 1px rgba(66, 153, 225, 0.6)',
+              borderColor: '#2c3b42',
+              boxShadow: '0 0 0 1px rgba(42, 58, 65, 0.45)',
             }}
           >
             {examples?.map((example) => (
@@ -319,8 +319,8 @@ export function EditorPanel({
           {selectedExample && (
             <Tooltip label={selectedExample.description} hasArrow>
               <Badge
-                colorScheme="blue"
-                variant="subtle"
+                bg={useColorModeValue('#e3ded3', '#1f252d')}
+                color={useColorModeValue('#2c3a40', '#f5f3ed')}
                 px={3}
                 py={1}
                 borderRadius="full"
@@ -355,7 +355,7 @@ export function EditorPanel({
                 onClick={() => fileInputRef.current?.click()}
                 isDisabled={isGenerating}
                 _hover={{
-                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  bg: useColorModeValue('#efebe3', '#1f252c'),
                   transform: 'translateY(-2px)',
                 }}
                 _active={{
@@ -374,7 +374,7 @@ export function EditorPanel({
                 onClick={handleCopy}
                 isDisabled={isGenerating}
                 _hover={{
-                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  bg: useColorModeValue('#efebe3', '#1f252c'),
                   transform: 'translateY(-2px)',
                 }}
                 _active={{
@@ -393,7 +393,7 @@ export function EditorPanel({
                 onClick={handleDownload}
                 isDisabled={isGenerating}
                 _hover={{
-                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  bg: useColorModeValue('#efebe3', '#1f252c'),
                   transform: 'translateY(-2px)',
                 }}
                 _active={{
@@ -412,7 +412,7 @@ export function EditorPanel({
                 onClick={handleReset}
                 isDisabled={isGenerating}
                 _hover={{
-                  bg: useColorModeValue('gray.100', 'gray.700'),
+                  bg: useColorModeValue('#efebe3', '#1f252c'),
                   transform: 'translateY(-2px)',
                 }}
                 _active={{
@@ -432,7 +432,7 @@ export function EditorPanel({
                 onClick={handleClear}
                 isDisabled={isGenerating}
                 _hover={{
-                  bg: useColorModeValue('red.50', 'red.900'),
+                  bg: useColorModeValue('#f4e7e3', '#2a1714'),
                   transform: 'translateY(-2px)',
                 }}
                 _active={{
@@ -449,7 +449,7 @@ export function EditorPanel({
       <Box
         ref={editorContainerRef}
         border="1px solid"
-        borderColor={useColorModeValue('gray.300', 'gray.600')}
+        borderColor={useColorModeValue('#dcd9cf', '#2a3039')}
         borderRadius="lg"
         overflow="auto"
         height="420px"
@@ -457,7 +457,7 @@ export function EditorPanel({
         shadow="sm"
         transition="all 0.2s"
         _hover={{
-          borderColor: useColorModeValue('gray.400', 'gray.500'),
+          borderColor: useColorModeValue('#c8c3b8', '#3a4350'),
           shadow: 'md',
         }}
       >
@@ -467,11 +467,11 @@ export function EditorPanel({
               <VStack spacing={4}>
                 <Spinner
                   size="xl"
-                  color="blue.500"
+                  color="#2c3b42"
                   thickness="3px"
                   speed="0.65s"
                 />
-                <Text color={useColorModeValue('gray.600', 'gray.400')} fontWeight="500">
+                <Text color={useColorModeValue('#6b6f75', '#a0a7b4')} fontWeight="500">
                   Loading editor...
                 </Text>
               </VStack>
@@ -516,7 +516,7 @@ export function EditorPanel({
       {/* Enhanced Submit button */}
       {onSubmit && (
         <Button
-          colorScheme="blue"
+          colorScheme="gray"
           size="lg"
           onClick={onSubmit}
           isLoading={isGenerating}
@@ -527,22 +527,23 @@ export function EditorPanel({
           fontSize="lg"
           fontWeight="bold"
           shadow="lg"
+          color={useColorModeValue('#f9f8f5', '#f5f3ed')}
           bgGradient={
             !isGenerating
               ? useColorModeValue(
-                  'linear(to-r, blue.500, blue.600)',
-                  'linear(to-r, blue.400, blue.500)'
+                  'linear(to-r, #2f3e46, #48565d)',
+                  'linear(to-r, #2c3a40, #1f2a32)'
                 )
               : undefined
           }
           _hover={
             !isGenerating
-              ? {
-                  transform: 'translateY(-2px)',
-                  shadow: 'xl',
-                  bgGradient: useColorModeValue(
-                    'linear(to-r, blue.600, blue.700)',
-                    'linear(to-r, blue.500, blue.600)'
+            ? {
+                transform: 'translateY(-2px)',
+                shadow: 'xl',
+                bgGradient: useColorModeValue(
+                    'linear(to-r, #3a4a52, #516068)',
+                    'linear(to-r, #1f2a32, #2c3a40)'
                   ),
                 }
               : {}

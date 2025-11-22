@@ -110,12 +110,14 @@ async def send_message(request: ChatMessageRequest):
         # Get session and conversation history
         session = get_session(request.session_id)
         conversation_history = session.get("conversation_history", [])
+        previous_state = session.get("state")
 
         # Run chatbot
         result = await run_hybrid_chatbot(
             user_message=request.message,
             session_id=request.session_id,
             conversation_history=conversation_history,
+            previous_state=previous_state,
             user_id=request.user_id,
             access_level=request.access_level
         )

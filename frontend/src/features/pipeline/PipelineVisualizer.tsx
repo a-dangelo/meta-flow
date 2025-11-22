@@ -116,13 +116,13 @@ function StageIndicator({
   status: 'pending' | 'active' | 'complete' | 'error';
   isLast: boolean;
 }) {
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const borderColor = useColorModeValue('#e0ddd4', '#2a3038');
 
   const statusColors = {
-    pending: { bg: 'gray.100', border: 'gray.300', text: 'gray.500' },
-    active: { bg: 'blue.50', border: 'blue.500', text: 'blue.700' },
-    complete: { bg: 'green.50', border: 'green.500', text: 'green.700' },
-    error: { bg: 'red.50', border: 'red.500', text: 'red.700' },
+    pending: { bg: '#f3f1ec', border: '#d6d2c7', text: '#8a8882' },
+    active: { bg: '#e3e0d6', border: '#2c3b42', text: '#1f2a32' },
+    complete: { bg: '#e6efe9', border: '#4f6b5a', text: '#324236' },
+    error: { bg: '#f4e7e3', border: '#b66252', text: '#8c4336' },
   };
 
   const colors = statusColors[status];
@@ -144,7 +144,7 @@ function StageIndicator({
           justifyContent="center"
           transform={status === 'active' ? 'scale(1.1)' : 'scale(1)'}
           transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-          boxShadow={status === 'active' ? '0 0 0 4px rgba(66, 153, 225, 0.2)' : 'none'}
+          boxShadow={status === 'active' ? '0 0 0 4px rgba(31, 42, 50, 0.15)' : 'none'}
         >
           {status === 'complete' && (
             <CheckCircleIcon
@@ -201,14 +201,15 @@ function StageIndicator({
           <Text
             fontWeight="bold"
             fontSize="sm"
-            color={status === 'pending' ? 'gray.500' : colors.text}
+            color={status === 'pending' ? '#8a8882' : colors.text}
             transition="color 0.2s"
           >
             {stage.label}
           </Text>
           {status === 'active' && (
             <Badge
-              colorScheme="blue"
+              bg="#2c3a40"
+              color="#f5f3ed"
               variant="solid"
               fontSize="xs"
               animation="fadeIn 0.3s ease-in-out"
@@ -217,7 +218,7 @@ function StageIndicator({
             </Badge>
           )}
         </HStack>
-        <Text fontSize="xs" color="gray.600">
+        <Text fontSize="xs" color={useColorModeValue('#6f7378', '#9ea5b3')}>
           {stage.description}
         </Text>
       </VStack>
@@ -234,8 +235,8 @@ export function PipelineVisualizer({
   error,
   executionTime,
 }: PipelineVisualizerProps) {
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue('#fcfbf7', '#171c23');
+  const borderColor = useColorModeValue('#e0ddd4', '#2a3038');
 
   const hasError = currentStage === 'error' || !!error;
 
@@ -246,6 +247,11 @@ export function PipelineVisualizer({
     if (currentStage === 'error') return 0;
     return progress;
   }, [currentStage, progress]);
+  const progressAccent = hasError
+    ? '#b66252'
+    : currentStage === 'complete'
+      ? '#4f6b5a'
+      : '#2c3a40';
 
   return (
     <VStack spacing={4} align="stretch">
@@ -255,7 +261,11 @@ export function PipelineVisualizer({
           Generation Pipeline
         </Text>
         {executionTime && (
-          <Badge colorScheme="gray" variant="outline">
+          <Badge
+            variant="outline"
+            borderColor="#b7b0a3"
+            color="#5d5f63"
+          >
             {(executionTime / 1000).toFixed(2)}s
           </Badge>
         )}
@@ -265,7 +275,7 @@ export function PipelineVisualizer({
       {currentStage !== 'idle' && (
         <Box>
           <Flex justify="space-between" mb={2}>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color={useColorModeValue('#6f7378', '#a0a7b4')}>
               Overall Progress
             </Text>
             <Text fontSize="sm" fontWeight="bold">
@@ -275,9 +285,13 @@ export function PipelineVisualizer({
           <Progress
             value={stageProgress}
             size="sm"
-            colorScheme={hasError ? 'red' : currentStage === 'complete' ? 'green' : 'blue'}
             hasStripe={currentStage !== 'complete'}
             isAnimated={currentStage !== 'complete' && currentStage !== 'error'}
+            sx={{
+              '& > div[role=\"progressbar\"]': {
+                backgroundColor: progressAccent,
+              },
+            }}
           />
         </Box>
       )}

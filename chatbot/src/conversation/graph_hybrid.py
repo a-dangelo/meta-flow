@@ -68,6 +68,13 @@ def search_workflows_node(state: WorkflowState) -> Dict:
     """
     start_time = time.time()
 
+    # Skip if already matched (resuming from previous turn)
+    if state.get("matched_workflow_path"):
+        elapsed = time.time() - start_time
+        return {
+            "node_timings": {**state.get("node_timings", {}), "search": elapsed}
+        }
+
     user_input = state.get("user_input", "")
     access_level = state.get("access_level", "employee")
 
@@ -112,6 +119,13 @@ async def generate_agent_node(state: WorkflowState) -> Dict:
     Returns both JSON AST and Python code.
     """
     start_time = time.time()
+
+    # Skip if already generated (resuming from previous turn)
+    if state.get("json_ast") and state.get("python_code"):
+        elapsed = time.time() - start_time
+        return {
+            "node_timings": {**state.get("node_timings", {}), "generate": elapsed}
+        }
 
     workflow_path = state.get("matched_workflow_path")
     if not workflow_path:
@@ -160,6 +174,13 @@ def extract_parameters_node(state: WorkflowState) -> Dict:
     No LLM needed - direct JSON parsing provides 100% accuracy.
     """
     start_time = time.time()
+
+    # Skip if already extracted (resuming from previous turn)
+    if state.get("required_parameters"):
+        elapsed = time.time() - start_time
+        return {
+            "node_timings": {**state.get("node_timings", {}), "extract": elapsed}
+        }
 
     json_ast = state.get("json_ast")
     if not json_ast:
@@ -257,9 +278,24 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
     parameters = state.get("required_parameters", [])
     collected = state.get("collected_parameters", {})
     messages = state.get("messages", [])
+    execution_status = state.get("execution_status")
+
+    # Check if we even need parameters
+    if not parameters:
+        # No parameters needed, skip collection entirely
+        elapsed = time.time() - start_time
+        return {
+            "collected_parameters": {},
+            "pending_parameters": [],
+            "execution_status": "ready_to_validate",
+            "node_timings": {**state.get("node_timings", {}), "collect": elapsed}
+        }
 
     # Check if this is first collection or follow-up
-    if not collected:
+    # First time: no collected params AND not already awaiting input
+    is_first_time = not collected and execution_status != "awaiting_user_input"
+
+    if is_first_time:
         # First time - ask for all parameters
         prompt = create_collection_prompt(parameters)
         messages.append(AIMessage(content=prompt))
@@ -267,7 +303,8 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
         elapsed = time.time() - start_time
         return {
             "messages": messages,
-            "execution_status": "collecting_parameters",
+            "execution_status": "awaiting_user_input",  # Changed to signal we need user input
+            "pending_parameters": [p["name"] for p in parameters],
             "node_timings": {**state.get("node_timings", {}), "collect": elapsed}
         }
 
@@ -412,10 +449,17 @@ def route_after_search(state: WorkflowState) -> str:
 
 def route_after_collection(state: WorkflowState) -> str:
     """Route after parameter collection."""
-    pending = state.get("pending_parameters", [])
+    status = state.get("execution_status")
 
+    # If we're waiting for user input, stop the graph execution
+    if status == "awaiting_user_input":
+        return "end"  # End the graph to wait for user response
+
+    # Otherwise check if we have all parameters
+    pending = state.get("pending_parameters", [])
     if not pending:
         return "validate"
+
     return "collect"  # Loop back for more collection
 
 
@@ -469,7 +513,7 @@ def create_hybrid_graph():
     graph.add_conditional_edges(
         "collect",
         route_after_collection,
-        {"validate": "validate", "collect": "collect"}
+        {"validate": "validate", "collect": "collect", "end": END}
     )
 
     # Conditional routing after validation
@@ -490,6 +534,7 @@ async def run_hybrid_chatbot(
     user_message: str,
     session_id: str,
     conversation_history: list = None,
+    previous_state: dict = None,
     user_id: str = "anonymous",
     access_level: str = "employee"
 ) -> WorkflowState:
@@ -500,6 +545,7 @@ async def run_hybrid_chatbot(
         user_message: User's message
         session_id: Session identifier
         conversation_history: Previous messages (optional)
+        previous_state: Previous workflow state for resuming (optional)
         user_id: User identifier
         access_level: User's access level (employee, manager, hr, admin)
 
@@ -508,23 +554,32 @@ async def run_hybrid_chatbot(
     """
     graph = create_hybrid_graph()
 
-    # Initialize state
+    # Add new message to conversation
     messages = conversation_history or []
     messages.append(HumanMessage(content=user_message))
 
-    initial_state: WorkflowState = {
-        "user_id": user_id,
-        "session_id": session_id,
-        "access_level": access_level,
-        "user_input": user_message,
-        "messages": messages,
-        "search_confidence": 0.0,
-        "requires_clarification": False,
-        "collected_parameters": {},
-        "pending_parameters": [],
-        "execution_status": "pending",
-        "node_timings": {}
-    }
+    # If we have previous state, resume from it
+    if previous_state and previous_state.get("execution_status") == "awaiting_user_input":
+        # Resume from parameter collection
+        initial_state = previous_state.copy()
+        initial_state["user_input"] = user_message
+        initial_state["messages"] = messages
+        # Keep existing: matched_workflow, json_ast, python_code, required_parameters, collected_parameters
+    else:
+        # Start fresh workflow
+        initial_state: WorkflowState = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "access_level": access_level,
+            "user_input": user_message,
+            "messages": messages,
+            "search_confidence": 0.0,
+            "requires_clarification": False,
+            "collected_parameters": {},
+            "pending_parameters": [],
+            "execution_status": "pending",
+            "node_timings": {}
+        }
 
     # Run graph
     result = await graph.ainvoke(initial_state)

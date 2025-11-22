@@ -46,6 +46,12 @@ export function OutputPanel({
 }: OutputPanelProps) {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState(0);
+  const panelBorderColor = colorMode === 'dark' ? '#2a3038' : '#e0ddd4';
+  const sectionBg = colorMode === 'dark' ? '#171c23' : '#fcfbf7';
+  const insetBg = colorMode === 'dark' ? '#1d242c' : '#f5f2eb';
+  const actionBg = colorMode === 'dark' ? '#1f252d' : '#faf8f2';
+  const actionHoverBg = colorMode === 'dark' ? '#2a3038' : '#ebe6db';
+  const mutedText = colorMode === 'dark' ? '#b7beca' : '#6f7378';
 
   /**
    * Copy code to clipboard
@@ -111,7 +117,7 @@ export function OutputPanel({
           message="Generating agent..."
           submessage="This may take a few moments"
         />
-        <Box p={6} borderRadius="md" bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}>
+        <Box p={6} borderRadius="md" bg={insetBg}>
           <CodeSkeleton lines={15} />
         </Box>
       </VStack>
@@ -158,16 +164,21 @@ export function OutputPanel({
       <Flex align="center" wrap="wrap" gap={2}>
         <HStack spacing={2}>
           <Text fontWeight="bold">Generated Agent:</Text>
-          <Badge colorScheme="blue" variant="solid">
+          <Badge bg="#2c3a40" color="#f5f3ed" fontWeight="600">
             {result.workflow_name}
           </Badge>
-          <Badge colorScheme="green" variant="outline">
+          <Badge
+            variant="outline"
+            borderColor="#4f6b5a"
+            color="#4f6b5a"
+            fontWeight="600"
+          >
             {result.workflow_type}
           </Badge>
         </HStack>
         <Spacer />
         {result.execution_time && (
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color={mutedText}>
             Generated in {(result.execution_time / 1000).toFixed(2)}s
           </Text>
         )}
@@ -209,11 +220,12 @@ export function OutputPanel({
             <Box
               flex={1}
               border="1px solid"
-              borderColor="gray.200"
+              borderColor={panelBorderColor}
               borderRadius="md"
               overflow="auto"
               position="relative"
               transition="all 0.2s ease-in-out"
+              bg={sectionBg}
             >
               {/* Action buttons */}
               <HStack position="absolute" top={2} right={2} zIndex={1}>
@@ -223,10 +235,9 @@ export function OutputPanel({
                     icon={<CopyIcon />}
                     size="sm"
                     onClick={() => handleCopy(pythonCode, 'Python code')}
-                    colorScheme="gray"
-                    bg="white"
-                    color="gray.700"
-                    _hover={{ bg: 'gray.100' }}
+                    bg={actionBg}
+                    color={colorMode === 'dark' ? '#ecf0f2' : '#1f2a32'}
+                    _hover={{ bg: actionHoverBg }}
                   />
                 </Tooltip>
                 <Tooltip label="Download as .py file">
@@ -241,10 +252,9 @@ export function OutputPanel({
                         'text/x-python'
                       )
                     }
-                    colorScheme="gray"
-                    bg="white"
-                    color="gray.700"
-                    _hover={{ bg: 'gray.100' }}
+                    bg={actionBg}
+                    color={colorMode === 'dark' ? '#ecf0f2' : '#1f2a32'}
+                    _hover={{ bg: actionHoverBg }}
                   />
                 </Tooltip>
               </HStack>
@@ -274,10 +284,11 @@ export function OutputPanel({
             <Box
               flex={1}
               border="1px solid"
-              borderColor="gray.200"
+              borderColor={panelBorderColor}
               borderRadius="md"
               overflow="auto"
               position="relative"
+              bg={sectionBg}
             >
               {/* Action buttons */}
               <HStack position="absolute" top={2} right={2} zIndex={1}>
@@ -287,10 +298,9 @@ export function OutputPanel({
                     icon={<CopyIcon />}
                     size="sm"
                     onClick={() => handleCopy(formattedJson, 'JSON')}
-                    colorScheme="gray"
-                    bg="white"
-                    color="gray.700"
-                    _hover={{ bg: 'gray.100' }}
+                    bg={actionBg}
+                    color={colorMode === 'dark' ? '#ecf0f2' : '#1f2a32'}
+                    _hover={{ bg: actionHoverBg }}
                   />
                 </Tooltip>
                 <Tooltip label="Download as .json file">
@@ -305,10 +315,9 @@ export function OutputPanel({
                         'application/json'
                       )
                     }
-                    colorScheme="gray"
-                    bg="white"
-                    color="gray.700"
-                    _hover={{ bg: 'gray.100' }}
+                    bg={actionBg}
+                    color={colorMode === 'dark' ? '#ecf0f2' : '#1f2a32'}
+                    _hover={{ bg: actionHoverBg }}
                   />
                 </Tooltip>
               </HStack>
@@ -339,9 +348,10 @@ export function OutputPanel({
               <Box
                 flex={1}
                 border="1px solid"
-                borderColor="gray.200"
+                borderColor={panelBorderColor}
                 borderRadius="md"
                 overflow="auto"
+                bg={sectionBg}
               >
                 <Box p={4} overflowX="auto">
                   <SyntaxHighlighter

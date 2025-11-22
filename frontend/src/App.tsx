@@ -52,8 +52,8 @@ const theme = extendTheme({
   styles: {
     global: (props: any) => ({
       body: {
-        bg: props.colorMode === 'dark' ? '#0f1419' : '#f7fafc',
-        color: props.colorMode === 'dark' ? 'gray.100' : 'gray.800',
+        bg: props.colorMode === 'dark' ? '#101417' : '#f4f1ec',
+        color: props.colorMode === 'dark' ? '#f5f3ed' : '#1f2328',
         lineHeight: 'relaxed',
         fontSize: 'md',
       },
@@ -105,8 +105,8 @@ const theme = extendTheme({
 function AppContent() {
   const toast = useToast();
   const { colorMode, toggleColorMode } = useColorMode();
-  const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
+  const bgColor = useColorModeValue('#f7f4ef', '#11161d');
+  const cardBg = useColorModeValue('#fcfbf7', '#171c23');
 
   // State with localStorage persistence
   const [editorContent, setEditorContent] = useLocalStorage(
