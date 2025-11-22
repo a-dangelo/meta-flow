@@ -61,7 +61,7 @@ def create_collection_prompt(parameters: List[Dict]) -> str:
 async def extract_values_from_message(
     user_message: str,
     parameters: List[Dict],
-    model_name: str = "claude-haiku-4-20250514",
+    model_name: str = "claude-haiku-4-5",
     temperature: float = 0.0
 ) -> Dict[str, any]:
     """

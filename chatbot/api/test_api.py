@@ -133,7 +133,7 @@ async def test_chat_flow():
 
             payload = {
                 "session_id": session_id,
-                "message": "Amount is $450, date is 2025-11-21, category is meals",
+                "message": "Amount is $450, date is 2025-11-21, category is meals, department is Engineering, receipt_url is https://example.com/receipt.pdf, employee_id is EMP123",
                 "user_id": "test-user",
                 "access_level": "employee"
             }

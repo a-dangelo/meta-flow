@@ -37,6 +37,7 @@ from chatbot.src.execution.orchestrator import (
 
 # Global repository singleton
 _repository = None
+RESUMABLE_STATUSES = {"awaiting_user_input", "collecting_parameters"}
 
 
 def get_repository() -> WorkflowRepository:
@@ -279,6 +280,7 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
     collected = state.get("collected_parameters", {})
     messages = state.get("messages", [])
     execution_status = state.get("execution_status")
+    pending_params = state.get("pending_parameters", [])
 
     # Check if we even need parameters
     if not parameters:
@@ -293,7 +295,8 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
 
     # Check if this is first collection or follow-up
     # First time: no collected params AND not already awaiting input
-    is_first_time = not collected and execution_status != "awaiting_user_input"
+    resumable = execution_status in RESUMABLE_STATUSES or bool(pending_params)
+    is_first_time = not collected and not resumable
 
     if is_first_time:
         # First time - ask for all parameters
@@ -310,27 +313,45 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
 
     else:
         # Extract values from latest user message
-        if messages and isinstance(messages[-1], HumanMessage):
-            user_message = messages[-1].content
-
+        if messages:
             # Use LLM to extract values
+            last_human = None
+            for message in reversed(messages):
+                if isinstance(message, HumanMessage):
+                    last_human = message
+                    break
+
+            if not last_human:
+                elapsed = time.time() - start_time
+                return {
+                    "error_message": "No recent user message to extract from",
+                    "node_timings": {**state.get("node_timings", {}), "collect": elapsed}
+                }
+
+            user_message = last_human.content
+
             extracted = await extract_values_from_message(
                 user_message,
                 parameters
             )
 
             # Merge with existing collected values
-            collected.update(extracted)
+            new_collected = {**collected, **extracted}
 
             # Check what's still missing
-            missing = get_missing_required_parameters(parameters, collected)
+            missing = get_missing_required_parameters(parameters, new_collected)
 
             elapsed = time.time() - start_time
+            print(
+                f"[collect_parameters_node] follow_up branch - "
+                f"extracted={list(extracted.keys())}, missing={missing}, "
+                f"status={execution_status}"
+            )
 
             if not missing:
                 # All parameters collected
                 return {
-                    "collected_parameters": collected,
+                    "collected_parameters": new_collected,
                     "pending_parameters": [],
                     "execution_status": "ready_to_validate",
                     "node_timings": {**state.get("node_timings", {}), "collect": elapsed}
@@ -342,7 +363,7 @@ async def collect_parameters_node(state: WorkflowState) -> Dict:
                 messages.append(AIMessage(content=prompt))
 
                 return {
-                    "collected_parameters": collected,
+                    "collected_parameters": new_collected,
                     "pending_parameters": missing,
                     "messages": messages,
                     "execution_status": "collecting_parameters",
@@ -452,7 +473,7 @@ def route_after_collection(state: WorkflowState) -> str:
     status = state.get("execution_status")
 
     # If we're waiting for user input, stop the graph execution
-    if status == "awaiting_user_input":
+    if status in RESUMABLE_STATUSES:
         return "end"  # End the graph to wait for user response
 
     # Otherwise check if we have all parameters
@@ -559,7 +580,7 @@ async def run_hybrid_chatbot(
     messages.append(HumanMessage(content=user_message))
 
     # If we have previous state, resume from it
-    if previous_state and previous_state.get("execution_status") == "awaiting_user_input":
+    if previous_state and previous_state.get("execution_status") in RESUMABLE_STATUSES:
         # Resume from parameter collection
         initial_state = previous_state.copy()
         initial_state["user_input"] = user_message
