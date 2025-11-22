@@ -102,6 +102,9 @@ def create_safe_builtins() -> Dict[str, Any]:
         "classmethod": classmethod,
         "super": super,
 
+        # Import support (needed for generated agent imports)
+        "__import__": builtins.__import__,
+
         # Common exceptions
         "Exception": Exception,
         "ValueError": ValueError,
@@ -135,7 +138,8 @@ def create_safe_namespace() -> Dict[str, Any]:
         Dictionary with safe builtins and minimal globals
     """
     return {
-        "__name__": "__main__",
+        # Use non-__main__ name to avoid running example blocks in generated code
+        "__name__": "__agent__",
         "__builtins__": create_safe_builtins(),
     }
 
