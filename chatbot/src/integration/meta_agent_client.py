@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
 from src.agents.graph import run_meta_agent
 from src.generators.agent_generator import AgentGenerator
-from src.core.workflow_ast import WorkflowSpec
+from src.agents.models import WorkflowSpec
 
 
 class MetaAgentClient:
@@ -61,11 +61,11 @@ class MetaAgentClient:
         if not workflow_spec_dict:
             raise ValueError("No workflow_spec in meta-agent result")
 
-        # Convert dict to WorkflowSpec Pydantic model
-        workflow_spec = WorkflowSpec.from_dict(workflow_spec_dict)
+        # Convert dict to Pydantic WorkflowSpec model (v2)
+        workflow_spec = WorkflowSpec.model_validate(workflow_spec_dict)
 
-        # Convert to dict for JSON output
-        json_output = workflow_spec.to_dict()
+        # Convert to plain dict for JSON output
+        json_output = workflow_spec.model_dump()
 
         # Phase 2: Generate Python code
         generator = AgentGenerator(workflow_spec)
