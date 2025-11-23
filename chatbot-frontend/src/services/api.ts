@@ -12,10 +12,13 @@ import type {
   Workflow
 } from './types';
 
+const DEFAULT_BASE_URL =
+  import.meta.env.VITE_CHATBOT_API_URL || '/api';
+
 class ChatbotAPI {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:8000') {
+  constructor(baseURL: string = DEFAULT_BASE_URL) {
     this.client = axios.create({
       baseURL,
       headers: {

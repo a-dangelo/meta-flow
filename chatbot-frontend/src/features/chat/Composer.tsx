@@ -2,12 +2,11 @@
  * Message composer component
  */
 
-import React, { useState, useRef, KeyboardEvent } from 'react';
+import React, { useState, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
 import {
-  Box,
   Flex,
   Input,
-  IconButton,
   Button,
   Textarea,
 } from '@chakra-ui/react';

@@ -1,0 +1,58 @@
+services:
+  chatbot-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.chatbot
+    container_name: metaflow-chatbot-backend
+    ports:
+      - "8001:8000"
+    environment:
+      # Pass through LLM provider API keys (at least one required)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AIMLAPI_KEY=${AIMLAPI_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # Optional model configuration
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-haiku-4-5}
+      - AIMLAPI_MODEL=${AIMLAPI_MODEL:-x-ai/grok-4-fast-reasoning}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
+    volumes:
+      # Mount chatbot workflows and generated agents for quick iteration
+      - ./chatbot/workflows:/app/chatbot/workflows:ro
+      - ./generated_agents:/app/generated_agents
+    networks:
+      - chatbot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  chatbot-frontend:
+    build:
+      context: ./chatbot-frontend
+      dockerfile: Dockerfile.chatbot-frontend
+      args:
+        # Use relative URLs so nginx proxy handles routing
+        VITE_CHATBOT_API_URL: ${CHATBOT_API_URL:-/api}
+        VITE_CHATBOT_WS_URL: ${CHATBOT_WS_URL:-}
+    container_name: metaflow-chatbot-frontend
+    ports:
+      - "3002:80"
+    depends_on:
+      chatbot-backend:
+        condition: service_healthy
+    networks:
+      - chatbot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  chatbot-network:
+    driver: bridge

@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { ChatMessage, ChatSession, Workflow, WorkflowParameter } from '../services/types';
+import type { ChatMessage, ChatSession, Workflow } from '../services/types';
 import { getAPI } from '../services/api';
 import type { WebSocketHandlers } from '../services/websocket';
 import { getWebSocket } from '../services/websocket';

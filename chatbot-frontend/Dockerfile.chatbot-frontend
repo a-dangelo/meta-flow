@@ -1,0 +1,37 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Build-time API base override
+# Using relative URLs so nginx proxy handles routing
+ARG VITE_CHATBOT_API_URL=/api
+ARG VITE_CHATBOT_WS_URL=
+ENV VITE_CHATBOT_API_URL=${VITE_CHATBOT_API_URL}
+ENV VITE_CHATBOT_WS_URL=${VITE_CHATBOT_WS_URL}
+ENV NODE_ENV=production
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --prefer-offline --no-audit --no-fund
+
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# Runtime stage
+FROM nginx:1.25-alpine
+
+RUN apk add --no-cache curl
+
+# Copy nginx configuration if present, otherwise use default
+COPY nginx.conf /etc/nginx/nginx.conf
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost/health || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

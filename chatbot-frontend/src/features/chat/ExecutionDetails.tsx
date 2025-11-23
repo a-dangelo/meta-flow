@@ -2,7 +2,7 @@
  * Execution details component showing generated code and results
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   VStack,
@@ -44,8 +44,6 @@ export const ExecutionDetails: React.FC<ExecutionDetailsProps> = ({
   workflowName,
 }) => {
   const toast = useToast();
-  const [defaultIndex, setDefaultIndex] = useState<number[]>([0, 1]);
-
   // Only show when workflow is completed
   if (status !== 'completed' || !executionResult) {
     return null;
@@ -123,7 +121,7 @@ export const ExecutionDetails: React.FC<ExecutionDetailsProps> = ({
         <Divider />
 
         {/* Accordion Sections */}
-        <Accordion allowMultiple defaultIndex={defaultIndex}>
+        <Accordion allowMultiple defaultIndex={[0, 1]}>
           {/* Parameters Section */}
           {collectedParameters && Object.keys(collectedParameters).length > 0 && (
             <AccordionItem border="none">

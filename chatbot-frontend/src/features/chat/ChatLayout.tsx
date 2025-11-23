@@ -2,14 +2,12 @@
  * Main chat layout component
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Flex,
   Container,
   Heading,
-  Text,
-  IconButton,
   Button,
   Badge,
   Drawer,
@@ -26,7 +24,6 @@ import { useChat } from '../../hooks/useChat';
 
 export const ChatLayout: React.FC = () => {
   const {
-    session,
     messages,
     isLoading,
     error,
@@ -40,8 +37,6 @@ export const ChatLayout: React.FC = () => {
     executionResult,
     sendMessage,
     startNewSession,
-    clearSession,
-    clearError,
   } = useChat();
 
   const { isOpen: isParamsOpen, onOpen: onOpenParams, onClose: onCloseParams } = useDisclosure();
@@ -188,7 +183,6 @@ export const ChatLayout: React.FC = () => {
           <ExecutionPanel
             logs={executionLogs}
             status={status}
-            onClose={onCloseLogs}
           />
         </DrawerContent>
       </Drawer>

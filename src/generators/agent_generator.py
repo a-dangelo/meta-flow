@@ -27,6 +27,9 @@ from src.agents.models import (
     OrchestratorWorkflow,
 )
 
+# Import tool registry
+from src.tools import TOOL_REGISTRY
+
 
 class AgentGenerator:
     """
@@ -56,6 +59,9 @@ class AgentGenerator:
         self.spec = workflow_spec
         self.credential_params = self._detect_credentials()
         self.all_tools = self._collect_all_tools()
+        # Categorize tools: library vs stub
+        self.library_tools = {tool for tool in self.all_tools if tool in TOOL_REGISTRY}
+        self.stub_tools = self.all_tools - self.library_tools
 
     def generate(self) -> str:
         """
@@ -202,6 +208,8 @@ class AgentGenerator:
         """
         Generate import statements.
 
+        Includes imports for tool library functions if any tools have implementations.
+
         Returns:
             Import statements for generated code
         """
@@ -210,6 +218,25 @@ class AgentGenerator:
             "import asyncio",
             "from typing import Any, Dict, Optional"
         ]
+
+        # Add tool library imports if any tools have implementations
+        if self.library_tools:
+            imports.append("")
+            imports.append("# Tool library imports")
+
+            # Group imports by module
+            tool_modules = {}
+            for tool in sorted(self.library_tools):
+                module_path = TOOL_REGISTRY[tool]
+                if module_path not in tool_modules:
+                    tool_modules[module_path] = []
+                tool_modules[module_path].append(tool)
+
+            # Generate import statements
+            for module_path, tools in sorted(tool_modules.items()):
+                tools_str = ", ".join(sorted(tools))
+                imports.append(f"from {module_path} import {tools_str}")
+
         return "\n".join(imports)
 
     def _generate_agent_class(self) -> str:
@@ -562,28 +589,32 @@ class AgentGenerator:
 
     def _generate_tool_methods(self) -> str:
         """
-        Generate tool stub methods.
+        Generate tool methods (library delegations or stubs).
 
-        Creates stub implementations for all tools used in the workflow.
-        Detects credentials and generates appropriate environment variable handling.
+        For tools in TOOL_REGISTRY: Generates delegation methods that call library functions.
+        For unknown tools: Generates stub implementations with TODO comments.
 
         Returns:
-            All tool method stubs
+            All tool method implementations
         """
         methods = []
 
         for tool_name in sorted(self.all_tools):
-            # Check if this tool uses any credential parameters
-            tool_params = self._get_tool_parameters(tool_name)
-            has_credentials = any(
-                self._is_credential_parameter(param)
-                for param in tool_params
-            )
-
-            if has_credentials:
-                method_code = self._generate_credential_tool_stub(tool_name, tool_params)
+            if tool_name in TOOL_REGISTRY:
+                # Tool has library implementation - generate delegation method
+                method_code = self._generate_library_delegation(tool_name)
             else:
-                method_code = self._generate_simple_tool_stub(tool_name)
+                # Tool not in library - generate stub as before
+                tool_params = self._get_tool_parameters(tool_name)
+                has_credentials = any(
+                    self._is_credential_parameter(param)
+                    for param in tool_params
+                )
+
+                if has_credentials:
+                    method_code = self._generate_credential_tool_stub(tool_name, tool_params)
+                else:
+                    method_code = self._generate_simple_tool_stub(tool_name)
 
             methods.append(method_code)
 
@@ -651,6 +682,23 @@ class AgentGenerator:
             '    return {"status": "not_implemented", "data": kwargs}'
         ])
 
+        return "\n".join(lines)
+
+    def _generate_library_delegation(self, tool_name: str) -> str:
+        """
+        Generate delegation method that calls tool library function.
+
+        Args:
+            tool_name: Name of the tool (must be in TOOL_REGISTRY)
+
+        Returns:
+            Delegation method code
+        """
+        lines = [
+            f"def {tool_name}(self, **kwargs) -> Any:",
+            f'    """Delegates to tool library implementation."""',
+            f"    return {tool_name}(**kwargs)"
+        ]
         return "\n".join(lines)
 
     def _generate_main_block(self) -> str:

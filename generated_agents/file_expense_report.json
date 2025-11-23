@@ -1,0 +1,119 @@
+{
+  "name": "file_expense_report",
+  "description": "Submit expense reports with automatic approval routing",
+  "version": "1.0.0",
+  "inputs": [
+    {
+      "name": "amount",
+      "type": "number",
+      "description": "Total expense amount in USD",
+      "is_credential": false
+    },
+    {
+      "name": "date",
+      "type": "string",
+      "description": "Date of expense (YYYY-MM-DD format)",
+      "is_credential": false
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "description": "Expense type (meals, travel, supplies, other)",
+      "is_credential": false
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "description": "Brief description of the expense",
+      "is_credential": false
+    },
+    {
+      "name": "employee_id",
+      "type": "string",
+      "description": "Employee identifier",
+      "is_credential": false
+    }
+  ],
+  "outputs": [],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "type": "tool_call",
+        "tool_name": "validate_expense_amount",
+        "parameters": {
+          "amount": "{{amount}}"
+        },
+        "assigns_to": "amount_validation",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "check_category_allowed",
+        "parameters": {
+          "category": "{{category}}"
+        },
+        "assigns_to": "category_validation",
+        "description": null
+      },
+      {
+        "type": "conditional",
+        "condition": "{{amount}} > 5000",
+        "if_branch": {
+          "type": "tool_call",
+          "tool_name": "route_for_manager_approval",
+          "parameters": {
+            "amount": "{{amount}}",
+            "employee_id": "{{employee_id}}"
+          },
+          "assigns_to": "approval_routing",
+          "description": null
+        },
+        "else_branch": {
+          "type": "tool_call",
+          "tool_name": "route_for_auto_approval",
+          "parameters": {
+            "amount": "{{amount}}",
+            "employee_id": "{{employee_id}}"
+          },
+          "assigns_to": "approval_routing",
+          "description": null
+        },
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "generate_reference_number",
+        "parameters": {
+          "employee_id": "{{employee_id}}",
+          "date": "{{date}}"
+        },
+        "assigns_to": "reference_number",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "log_expense_submission",
+        "parameters": {
+          "reference_number": "{{reference_number}}",
+          "employee_id": "{{employee_id}}",
+          "amount": "{{amount}}",
+          "category": "{{category}}"
+        },
+        "assigns_to": "submission_log",
+        "description": null
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "calculate_reimbursement_date",
+        "parameters": {
+          "reference_number": "{{reference_number}}"
+        },
+        "assigns_to": "estimated_reimbursement_date",
+        "description": null
+      }
+    ],
+    "description": null
+  },
+  "metadata": {}
+}

@@ -1,0 +1,49 @@
+FROM python:3.11-slim AS base
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# System deps for common Python packages (numpy, sentence-transformers)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install project requirements (root + chatbot extras)
+COPY requirements.txt /app/requirements.txt
+COPY chatbot/requirements.txt /app/chatbot/requirements.txt
+# Install CPU-only torch first to avoid pulling CUDA wheels
+RUN pip install --no-cache-dir \
+    torch==2.3.1 \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt \
+ && pip install --no-cache-dir -r /app/chatbot/requirements.txt
+
+# Pre-download embedding model to avoid runtime download and healthcheck failures
+ENV HF_HOME=/root/.cache/huggingface \
+    HF_HUB_CACHE=/root/.cache/huggingface \
+    TRANSFORMERS_CACHE=/root/.cache/huggingface \
+    SENTENCE_TRANSFORMERS_HOME=/root/.cache/huggingface
+RUN python - <<'PY'
+from sentence_transformers import SentenceTransformer
+
+# This is the model used in chatbot/src/conversation/graph_hybrid.py
+SentenceTransformer("BAAI/bge-small-en-v1.5")
+PY
+
+# Enable offline mode at runtime (after cache is baked)
+ENV HF_HUB_OFFLINE=1
+
+# Copy source
+COPY . /app
+
+ENV PYTHONPATH=/app
+
+EXPOSE 8000
+
+CMD ["uvicorn", "chatbot.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

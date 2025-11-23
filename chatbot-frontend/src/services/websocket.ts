@@ -10,6 +10,11 @@ import type {
   WSErrorMessage
 } from './types';
 
+// Determine WebSocket protocol based on current page protocol
+const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const DEFAULT_WS_BASE =
+  import.meta.env.VITE_CHATBOT_WS_URL || `${wsProtocol}//${window.location.host}/ws`;
+
 export interface WebSocketHandlers {
   onLog?: (message: WSLogMessage) => void;
   onStatus?: (message: WSStatusMessage) => void;
@@ -22,12 +27,11 @@ export interface WebSocketHandlers {
 class WebSocketClient {
   private socket: WebSocket | null = null;
   private handlers: WebSocketHandlers = {};
-  private sessionId: string | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private baseURL: string;
 
-  constructor(baseURL: string = 'ws://localhost:8000') {
+  constructor(baseURL: string = DEFAULT_WS_BASE) {
     this.baseURL = baseURL;
   }
 
@@ -37,11 +41,10 @@ class WebSocketClient {
       return;
     }
 
-    this.sessionId = sessionId;
     this.handlers = handlers;
 
     // WebSocket URL for chatbot API
-    const wsUrl = `${this.baseURL}/ws/chat/${sessionId}`;
+    const wsUrl = `${this.baseURL}/chat/${sessionId}`;
 
     console.log(`[WS] Connecting to ${wsUrl}`);
 
@@ -138,7 +141,6 @@ class WebSocketClient {
       this.socket.close();
       this.socket = null;
     }
-    this.sessionId = null;
     this.handlers = {};
     this.reconnectAttempts = 0;
   }

@@ -61,52 +61,6 @@ export const ParameterDrawer: React.FC<ParameterDrawerProps> = ({
     }
   };
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    pendingParameters.forEach((paramName) => {
-      const param = parameters.find((p) => p.name === paramName);
-      if (!param) return;
-
-      const value = values[paramName];
-
-      // Check required
-      if (param.required && !value) {
-        newErrors[paramName] = 'This field is required';
-      }
-
-      // Type validation
-      if (value) {
-        switch (param.type) {
-          case 'number':
-          case 'float':
-            if (isNaN(Number(value))) {
-              newErrors[paramName] = 'Must be a number';
-            }
-            break;
-          case 'integer':
-            if (!Number.isInteger(Number(value))) {
-              newErrors[paramName] = 'Must be a whole number';
-            }
-            break;
-          case 'email':
-            if (!value.includes('@')) {
-              newErrors[paramName] = 'Must be a valid email';
-            }
-            break;
-          case 'date':
-            if (isNaN(Date.parse(value))) {
-              newErrors[paramName] = 'Must be a valid date';
-            }
-            break;
-        }
-      }
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = () => {
     console.log('[ParameterDrawer] Submit clicked');
     console.log('[ParameterDrawer] Current values:', values);

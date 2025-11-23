@@ -13,9 +13,6 @@ import {
   DrawerBody,
   DrawerCloseButton,
   Spinner,
-  Code,
-  Divider,
-  IconButton,
   Button,
   useToast,
 } from '@chakra-ui/react';
@@ -23,13 +20,11 @@ import {
 interface ExecutionPanelProps {
   logs: string[];
   status?: string;
-  onClose: () => void;
 }
 
 export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({
   logs,
   status,
-  onClose,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
