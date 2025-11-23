@@ -93,25 +93,33 @@ export const ExecutionDetails: React.FC<ExecutionDetailsProps> = ({
       mx={4}
       boxShadow="md"
       borderWidth="1px"
-      borderColor="ocean.200"
+      borderColor="ocean.500"
     >
       <VStack align="stretch" spacing={4}>
         {/* Header */}
         <HStack justify="space-between">
           <HStack spacing={3}>
-            <Text fontSize="lg" fontWeight="semibold" color="ocean.600">
+            <Text fontSize="lg" fontWeight="semibold" color="gray.900">
               Execution Details
             </Text>
-            <Badge colorScheme="green" fontSize="sm">
+            <Badge
+              px={3}
+              py={1}
+              borderRadius="md"
+              bg="green.600"
+              color="white"
+              fontSize="sm"
+              boxShadow="sm"
+            >
               ✓ Completed
             </Badge>
           </HStack>
           {pythonCode && (
             <HStack spacing={2}>
-              <Button size="sm" variant="ghost" onClick={handleCopyCode}>
+              <Button size="sm" variant="outline" colorScheme="blue" onClick={handleCopyCode}>
                 Copy Code
               </Button>
-              <Button size="sm" variant="ghost" onClick={handleDownloadCode}>
+              <Button size="sm" variant="outline" colorScheme="blue" onClick={handleDownloadCode}>
                 Download
               </Button>
             </HStack>
@@ -130,9 +138,10 @@ export const ExecutionDetails: React.FC<ExecutionDetailsProps> = ({
                   _hover={{ bg: 'sand.50' }}
                   borderRadius="md"
                   py={3}
+                  color="gray.900"
                 >
                   <Box flex="1" textAlign="left">
-                    <Text fontWeight="medium" color="gray.700">
+                    <Text fontWeight="medium" color="gray.900">
                       Input Parameters
                     </Text>
                   </Box>
@@ -143,18 +152,24 @@ export const ExecutionDetails: React.FC<ExecutionDetailsProps> = ({
                 <Table size="sm" variant="simple">
                   <Thead>
                     <Tr>
-                      <Th>Parameter</Th>
-                      <Th>Value</Th>
+                      <Th color="gray.900" borderColor="gray.700">
+                        Parameter
+                      </Th>
+                      <Th color="gray.900" borderColor="gray.700">
+                        Value
+                      </Th>
                     </Tr>
                   </Thead>
                   <Tbody>
                     {Object.entries(collectedParameters).map(([key, value]) => (
-                      <Tr key={key}>
-                        <Td fontWeight="medium" color="gray.600">
-                          <Code fontSize="sm">{key}</Code>
+                      <Tr key={key} borderColor="gray.200">
+                        <Td fontWeight="semibold" color="gray.900" borderColor="gray.200">
+                          <Code fontSize="sm" color="gray.900" bg="gray.50">
+                            {key}
+                          </Code>
                         </Td>
-                        <Td>
-                          <Text fontSize="sm" color="gray.700">
+                        <Td borderColor="gray.200">
+                          <Text fontSize="sm" color="gray.900">
                             {formatValue(value)}
                           </Text>
                         </Td>
