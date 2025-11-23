@@ -40,17 +40,18 @@ export interface ChatMessageRequest {
 // API Response types
 export interface ChatMessageResponse {
   session_id: string;
-  messages: ChatMessage[];
   status: 'pending' | 'collecting_parameters' | 'awaiting_user_input' |
           'ready_to_validate' | 'validated' | 'executing' | 'completed' | 'failed';
-  workflow?: string;
-  confidence?: number;
+  message?: string;
+  matched_workflow?: string;
+  search_confidence?: number;
   required_parameters?: WorkflowParameter[];
   collected_parameters?: Record<string, any>;
   pending_parameters?: string[];
+  validation_errors?: string[];
   execution_result?: any;
-  execution_logs?: string[];
   error_message?: string;
+  node_timings?: Record<string, number>;
 }
 
 export interface SessionStateResponse {
@@ -70,7 +71,7 @@ export interface WorkflowListResponse {
 
 // WebSocket message types
 export interface WSMessage {
-  type: 'ping' | 'pong' | 'log' | 'status' | 'result' | 'error';
+  type: 'connected' | 'ping' | 'pong' | 'log' | 'status' | 'result' | 'error';
   data?: any;
 }
 

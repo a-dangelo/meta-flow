@@ -2,8 +2,7 @@
  * WebSocket client for real-time updates
  */
 
-import { io, Socket } from 'socket.io-client';
-import {
+import type {
   WSMessage,
   WSLogMessage,
   WSStatusMessage,
@@ -21,16 +20,19 @@ export interface WebSocketHandlers {
 }
 
 class WebSocketClient {
-  private socket: Socket | null = null;
+  private socket: WebSocket | null = null;
   private handlers: WebSocketHandlers = {};
   private sessionId: string | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private baseURL: string;
 
-  constructor(private baseURL: string = 'ws://localhost:8000') {}
+  constructor(baseURL: string = 'ws://localhost:8000') {
+    this.baseURL = baseURL;
+  }
 
   connect(sessionId: string, handlers: WebSocketHandlers = {}): void {
-    if (this.socket?.connected) {
+    if (this.socket?.readyState === WebSocket.OPEN) {
       console.log('[WS] Already connected');
       return;
     }
@@ -90,7 +92,7 @@ class WebSocketClient {
     };
 
     // Store WebSocket reference
-    (this as any).ws = ws;
+    this.socket = ws;
   }
 
   private sendPing(ws: WebSocket): void {
@@ -106,6 +108,10 @@ class WebSocketClient {
     console.log(`[WS] Received:`, message.type, message.data);
 
     switch (message.type) {
+      case 'connected':
+        // Welcome message, no action needed
+        console.log('[WS] Welcome message received');
+        break;
       case 'log':
         this.handlers.onLog?.(message as WSLogMessage);
         break;
@@ -127,11 +133,10 @@ class WebSocketClient {
   }
 
   disconnect(): void {
-    const ws = (this as any).ws as WebSocket | undefined;
-    if (ws) {
+    if (this.socket) {
       console.log('[WS] Disconnecting...');
-      ws.close();
-      (this as any).ws = null;
+      this.socket.close();
+      this.socket = null;
     }
     this.sessionId = null;
     this.handlers = {};
@@ -139,17 +144,15 @@ class WebSocketClient {
   }
 
   send(message: WSMessage): void {
-    const ws = (this as any).ws as WebSocket | undefined;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify(message));
     } else {
       console.warn('[WS] Cannot send message - not connected');
     }
   }
 
   isConnected(): boolean {
-    const ws = (this as any).ws as WebSocket | undefined;
-    return ws?.readyState === WebSocket.OPEN || false;
+    return this.socket?.readyState === WebSocket.OPEN || false;
   }
 }
 

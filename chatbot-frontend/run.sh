@@ -26,8 +26,8 @@ fi
 # Start frontend
 echo "🎨 Starting frontend development server..."
 echo ""
-npm run dev -- --host --port 5173
+npm run dev -- --host --port 3001
 
 # The frontend will be available at:
-# - http://localhost:5173
-# - http://[codespace-url]:5173 (if in GitHub Codespaces)
+# - http://localhost:3001
+# - http://[codespace-url]:3001 (if in GitHub Codespaces)

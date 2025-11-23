@@ -4,9 +4,10 @@
 
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { ChatMessage, ChatSession, Workflow, WorkflowParameter } from '../services/types';
+import type { ChatMessage, ChatSession, Workflow, WorkflowParameter } from '../services/types';
 import { getAPI } from '../services/api';
-import { getWebSocket, WebSocketHandlers } from '../services/websocket';
+import type { WebSocketHandlers } from '../services/websocket';
+import { getWebSocket } from '../services/websocket';
 
 interface ChatState {
   // Current session
@@ -201,18 +202,28 @@ export const useChatStore = create<ChatStore>()(
               access_level: 'employee',
             });
 
+            // Create assistant message if response has one
+            const assistantMessage: ChatMessage | null = response.message ? {
+              role: 'assistant',
+              content: response.message,
+              timestamp: new Date().toISOString(),
+              confidence: response.search_confidence,
+            } : null;
+
             // Update session with response
             set((state) => ({
               currentSession: state.currentSession ? {
                 ...state.currentSession,
-                messages: response.messages,
+                messages: assistantMessage
+                  ? [...state.currentSession.messages, assistantMessage]
+                  : state.currentSession.messages,
                 status: response.status,
-                workflow: response.workflow ? {
-                  name: response.workflow,
+                workflow: response.matched_workflow ? {
+                  name: response.matched_workflow,
                   description: '',
                   category: '',
                   access_level: 'employee',
-                  confidence: response.confidence,
+                  confidence: response.search_confidence,
                   parameters: response.required_parameters,
                 } : undefined,
                 collectedParameters: response.collected_parameters || {},

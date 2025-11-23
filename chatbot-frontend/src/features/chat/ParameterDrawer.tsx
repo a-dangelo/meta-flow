@@ -22,7 +22,7 @@ import {
   Text,
   Badge,
 } from '@chakra-ui/react';
-import { WorkflowParameter } from '../../services/types';
+import type { WorkflowParameter } from '../../services/types';
 
 interface ParameterDrawerProps {
   isOpen: boolean;
@@ -108,7 +108,31 @@ export const ParameterDrawer: React.FC<ParameterDrawerProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!validate()) return;
+    console.log('[ParameterDrawer] Submit clicked');
+    console.log('[ParameterDrawer] Current values:', values);
+    console.log('[ParameterDrawer] Pending parameters:', pendingParameters);
+
+    // Validate returns true if valid, but setErrors is async
+    // So we need to calculate errors inline
+    const validationErrors: Record<string, string> = {};
+
+    pendingParameters.forEach((paramName) => {
+      const param = parameters.find((p) => p.name === paramName);
+      if (!param) return;
+
+      const value = values[paramName];
+
+      // Check required
+      if (param.required && !value) {
+        validationErrors[paramName] = 'This field is required';
+      }
+    });
+
+    if (Object.keys(validationErrors).length > 0) {
+      console.log('[ParameterDrawer] Validation failed:', validationErrors);
+      setErrors(validationErrors);
+      return;
+    }
 
     const submittedValues: Record<string, any> = {};
     pendingParameters.forEach((paramName) => {
@@ -117,6 +141,7 @@ export const ParameterDrawer: React.FC<ParameterDrawerProps> = ({
       }
     });
 
+    console.log('[ParameterDrawer] Submitting values:', submittedValues);
     onSubmit(submittedValues);
     setValues({});
     setErrors({});

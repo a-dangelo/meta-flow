@@ -47,6 +47,8 @@ export const ChatLayout: React.FC = () => {
   React.useEffect(() => {
     if (pendingParameters.length > 0 && status === 'collecting_parameters') {
       onOpenParams();
+    } else if (status !== 'collecting_parameters') {
+      onCloseParams();
     }
   }, [pendingParameters, status]);
 

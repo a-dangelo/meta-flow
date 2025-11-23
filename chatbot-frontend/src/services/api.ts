@@ -2,8 +2,9 @@
  * API client for chatbot backend
  */
 
-import axios, { AxiosInstance } from 'axios';
-import {
+import axios from 'axios';
+import type { AxiosInstance } from 'axios';
+import type {
   ChatMessageRequest,
   ChatMessageResponse,
   SessionStateResponse,

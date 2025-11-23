@@ -18,7 +18,7 @@ import {
   AlertDescription,
   Flex,
 } from '@chakra-ui/react';
-import { ChatMessage, Workflow } from '../../services/types';
+import type { ChatMessage, Workflow } from '../../services/types';
 
 interface MessageListProps {
   messages: ChatMessage[];
