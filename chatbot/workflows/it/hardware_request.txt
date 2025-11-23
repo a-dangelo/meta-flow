@@ -1,0 +1,31 @@
+Workflow: hardware_request
+Description: Request IT hardware equipment
+Access: employee
+Category: it
+
+Inputs:
+- hardware_type (string): Type of hardware (laptop, monitor, keyboard, mouse, headset)
+- justification (string): Why you need this hardware
+- urgency (string): Request urgency (normal, high)
+- employee_id (string): Employee identifier
+
+Steps:
+1. Validate hardware_type is in supported list
+2. Assign estimated cost based on type:
+   - laptop: $1200
+   - monitor: $300
+   - keyboard: $80
+   - mouse: $40
+   - headset: $120
+3. Route for approval based on urgency:
+   - If urgency is high, assign to IT manager
+   - If urgency is normal, add to queue
+4. Generate IT ticket number
+5. Set expected delivery (5 business days for normal, 2 for high)
+
+Outputs:
+- ticket_number (string): IT ticket reference (format: IT-XXXX)
+- estimated_cost (float): Equipment cost
+- approval_status (string): Status (approved, pending)
+- expected_delivery (string): Estimated delivery date
+- message (string): Confirmation with next steps

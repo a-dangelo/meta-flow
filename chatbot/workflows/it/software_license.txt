@@ -1,0 +1,32 @@
+Workflow: software_license
+Description: Request software licenses
+Access: employee
+Category: it
+
+Inputs:
+- software_name (string): Name of the software (Slack, Figma, Adobe, Zoom, Other)
+- number_of_seats (int): How many user licenses needed
+- justification (string): Why you need this software
+- employee_id (string): Employee identifier
+
+Steps:
+1. Validate software_name is recognized or allow "Other"
+2. Calculate monthly cost per seat:
+   - Slack: $8/seat
+   - Figma: $15/seat
+   - Adobe: $55/seat
+   - Zoom: $15/seat
+   - Other: $20/seat
+3. Calculate total monthly cost (seats × cost_per_seat)
+4. Route for approval:
+   - If total < $100/month, auto-approve
+   - If total >= $100/month, route to IT manager
+5. Generate license request ticket
+6. Set activation timeline (immediate for approved, 2 days for pending)
+
+Outputs:
+- ticket_number (string): License request ID (format: LIC-XXXX)
+- monthly_cost (float): Total monthly cost
+- approval_status (string): Status (approved, pending)
+- activation_date (string): When licenses will be active
+- message (string): Next steps or activation instructions

@@ -1,0 +1,28 @@
+Workflow: file_expense_report
+Description: Submit expense reports with automatic approval routing
+Access: employee
+Category: finance
+
+Inputs:
+- amount (float): Total expense amount in USD
+- date (string): Date of expense (YYYY-MM-DD format)
+- category (string): Expense type (meals, travel, supplies, other)
+- description (string): Brief description of the expense
+- employee_id (string): Employee identifier
+
+Steps:
+1. Validate expense amount is positive and less than $50000
+2. Check if category is in allowed list (meals, travel, supplies, other)
+3. Route for approval based on amount:
+   - If amount < 100, auto-approve
+   - If amount between 100 and 1000, flag for manager review
+   - If amount > 1000, flag for director review
+4. Generate unique reference number
+5. Log expense submission with timestamp
+6. Calculate estimated reimbursement date (7 business days from approval)
+
+Outputs:
+- reference_id (string): Unique expense reference (format: EXP-XXXX)
+- status (string): Approval status (approved, pending_manager, pending_director)
+- estimated_reimbursement (string): Expected reimbursement date
+- message (string): Confirmation message for employee

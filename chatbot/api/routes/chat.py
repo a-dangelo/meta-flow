@@ -152,6 +152,7 @@ async def send_message(request: ChatMessageRequest):
             validation_errors=result.get("validation_errors"),
             execution_result=ExecutionResult(**result["execution_result"])
             if result.get("execution_result") else None,
+            python_code=result.get("python_code"),  # Generated agent code
             error_message=result.get("error_message"),
             node_timings=result.get("node_timings")
         )
@@ -199,6 +200,7 @@ async def get_session_state(session_id: str):
             collected_parameters=state.get("collected_parameters"),
             execution_result=ExecutionResult(**state["execution_result"])
             if state.get("execution_result") else None,
+            python_code=state.get("python_code"),  # Generated agent code
             error_message=state.get("error_message"),
             message_count=len(session.get("conversation_history", [])),
             created_at=session.get("created_at"),

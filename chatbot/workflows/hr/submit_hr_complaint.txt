@@ -1,0 +1,29 @@
+Workflow: submit_hr_complaint
+Description: Submit confidential HR complaint
+Access: employee
+Category: hr
+
+Inputs:
+- complaint_type (string): Type of complaint (harassment, workplace_issue, policy_violation, other)
+- description (string): Description of the issue
+- date_occurred (string): When did this happen (YYYY-MM-DD)
+- anonymous (boolean): Submit anonymously (true/false)
+
+Steps:
+1. Generate unique confidential case number
+2. Assign to appropriate HR representative:
+   - If complaint_type is harassment, assign to Senior HR
+   - Otherwise assign to HR representative
+3. If anonymous is true, mark submission as anonymous
+4. Set expected response time:
+   - harassment: 24 hours
+   - other types: 48 hours
+5. Log complaint with timestamp
+6. Prepare confirmation message with case number and next steps
+
+Outputs:
+- case_number (string): Confidential case ID (format: HR-CONF-XXXX)
+- assigned_to (string): HR representative handling the case
+- response_time (string): Expected initial response timeframe
+- anonymous_filing (boolean): Whether filed anonymously
+- message (string): Confirmation and next steps

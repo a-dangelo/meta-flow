@@ -109,6 +109,10 @@ class ChatMessageResponse(BaseModel):
         default=None,
         description="Execution result if completed"
     )
+    python_code: Optional[str] = Field(
+        default=None,
+        description="Generated Python agent code for transparency"
+    )
     error_message: Optional[str] = Field(
         default=None,
         description="Error message if failed"
@@ -151,6 +155,7 @@ class SessionStateResponse(BaseModel):
     required_parameters: Optional[List[ParameterInfo]] = None
     collected_parameters: Optional[Dict[str, Any]] = None
     execution_result: Optional[ExecutionResult] = None
+    python_code: Optional[str] = None
     error_message: Optional[str] = None
     message_count: int = 0
     created_at: Optional[datetime] = None

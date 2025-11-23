@@ -39,6 +39,10 @@ from chatbot.src.execution.orchestrator import (
 _repository = None
 RESUMABLE_STATUSES = {"awaiting_user_input", "collecting_parameters"}
 
+# Rejection thresholds for hallucination prevention
+REJECTION_THRESHOLD = 0.15  # Below this: hard reject (out of scope)
+CLARIFICATION_THRESHOLD = 0.60  # Below this: clarify, above: execute
+
 
 def get_repository() -> WorkflowRepository:
     """
@@ -84,8 +88,28 @@ def search_workflows_node(state: WorkflowState) -> Dict:
 
     elapsed = time.time() - start_time
 
-    if workflow and confidence >= 0.60:
-        # High confidence match (BGE-M3 threshold: 60%)
+    # Three-tier threshold system for hallucination prevention
+    if confidence < REJECTION_THRESHOLD:
+        # Hard rejection: Request is completely out of scope
+        all_workflows = repo.list_all_workflows(access_level)
+        categories = sorted(set(wf.category for wf in all_workflows))
+
+        rejection_message = (
+            f"I can only assist with {', '.join(categories[:-1])}, and {categories[-1]} workflows. "
+            f"Your request doesn't match any of our supported categories. "
+            f"Please rephrase your request or ask about one of the supported workflow types."
+        )
+
+        return {
+            "status": "rejected",
+            "search_confidence": confidence,
+            "error_message": rejection_message,
+            "requires_clarification": False,
+            "node_timings": {**state.get("node_timings", {}), "search": elapsed}
+        }
+
+    elif workflow and confidence >= CLARIFICATION_THRESHOLD:
+        # High confidence match - proceed with execution
         return {
             "matched_workflow_name": workflow.name,
             "matched_workflow_path": str(workflow.file_path),
@@ -94,7 +118,7 @@ def search_workflows_node(state: WorkflowState) -> Dict:
             "node_timings": {**state.get("node_timings", {}), "search": elapsed}
         }
     else:
-        # Low confidence - need clarification
+        # Medium confidence - need clarification
         all_workflows = repo.list_all_workflows(access_level)
         candidates = [
             {
@@ -390,6 +414,7 @@ async def execute_workflow_node(state: WorkflowState) -> Dict:
     workflow_name = state.get("matched_workflow_name", "unknown")
     python_code = state.get("python_code")
     parameters = state.get("collected_parameters", {})
+    messages = state.get("messages", [])
 
     # Validate inputs
     error = validate_execution_inputs(python_code, parameters)
@@ -433,27 +458,42 @@ async def execute_workflow_node(state: WorkflowState) -> Dict:
                 "execution_time": result.execution_time
             }
 
+            success_message = (
+                f"✓ Workflow '{workflow_name}' executed successfully. "
+                f"Reference ID: {reference_id}."
+            )
+            messages.append(AIMessage(content=success_message))
+
             return {
                 "execution_result": execution_result,
                 "execution_logs": result.logs,
+                "messages": messages,
                 "execution_status": "completed",
                 "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
             }
         else:
             # Execution failed
+            failure_message = (
+                f"Execution failed for '{workflow_name}'. "
+                f"Error: {result.error}"
+            )
+            messages.append(AIMessage(content=failure_message))
             return {
                 "error_message": result.error,
                 "error_type": result.error_type,
                 "execution_logs": result.logs,
+                "messages": messages,
                 "execution_status": "failed",
                 "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
             }
 
     except Exception as e:
         elapsed = time.time() - start_time
+        messages.append(AIMessage(content=f"Unexpected error during execution: {str(e)}"))
         return {
             "error_message": f"Unexpected error during execution: {str(e)}",
             "execution_logs": execution_logs,
+            "messages": messages,
             "execution_status": "failed",
             "node_timings": {**state.get("node_timings", {}), "execute": elapsed}
         }
@@ -462,9 +502,16 @@ async def execute_workflow_node(state: WorkflowState) -> Dict:
 # ==================== ROUTING FUNCTIONS ====================
 
 def route_after_search(state: WorkflowState) -> str:
-    """Route after workflow search based on confidence."""
+    """Route after workflow search based on confidence and rejection status."""
+    # Check if request was rejected (confidence < 15%)
+    if state.get("status") == "rejected":
+        return "end"  # Hard rejection - end graph immediately
+
+    # Check if we need clarification (15-59% confidence)
     if state.get("requires_clarification"):
         return "clarify"
+
+    # High confidence (≥60%) - proceed to generation
     return "generate"
 
 

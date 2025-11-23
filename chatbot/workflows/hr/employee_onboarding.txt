@@ -1,0 +1,32 @@
+Workflow: employee_onboarding
+Description: Onboard new employee
+Access: manager
+Category: hr
+
+Inputs:
+- employee_name (string): Full name of new employee
+- start_date (string): First day of work (YYYY-MM-DD)
+- position (string): Job title
+- department (string): Department name
+- manager_email (string): Manager's email address
+
+Steps:
+1. Generate new employee ID (format: EMP-XXXX)
+2. Create checklist of onboarding tasks:
+   - IT equipment setup
+   - Email account creation
+   - Orientation scheduling
+   - Buddy assignment
+3. Schedule Day 1 orientation (9 AM on start_date)
+4. Assign onboarding buddy from same department
+5. Create IT ticket for laptop and access setup
+6. Generate welcome email template for manager to send
+7. Set 30-day check-in reminder
+
+Outputs:
+- employee_id (string): New employee identifier
+- orientation_time (string): Day 1 orientation schedule
+- buddy_name (string): Assigned onboarding buddy
+- it_ticket (string): IT setup ticket number
+- checklist (list): Onboarding tasks list
+- message (string): Onboarding summary for manager

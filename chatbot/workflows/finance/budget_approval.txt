@@ -1,0 +1,28 @@
+Workflow: budget_approval
+Description: Request budget approval
+Access: manager
+Category: finance
+
+Inputs:
+- amount (float): Requested budget amount in USD
+- purpose (string): What the budget is for
+- quarter (string): Budget period (Q1, Q2, Q3, Q4)
+- department (string): Department name
+- manager_id (string): Requesting manager ID
+
+Steps:
+1. Validate amount is positive and less than $500000
+2. Route for approval based on amount:
+   - If amount < 5000, auto-approve
+   - If amount between 5000 and 25000, flag for director review
+   - If amount > 25000, flag for VP review
+3. Generate budget request ID
+4. Calculate quarterly budget impact
+5. Set review date (5 business days)
+
+Outputs:
+- request_id (string): Budget request ID (format: BUD-XXXX)
+- approval_status (string): Status (approved, pending_director, pending_vp)
+- review_date (string): When decision will be made
+- quarterly_impact (float): Impact on quarterly budget
+- message (string): Next steps in approval process

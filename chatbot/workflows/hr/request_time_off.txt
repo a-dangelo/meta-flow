@@ -1,0 +1,37 @@
+Workflow: request_time_off
+Description: Submit time-off requests with automatic balance checking and approval routing
+Access: employee
+Category: hr
+
+Inputs:
+- start_date (string): First day of time off (YYYY-MM-DD)
+- end_date (string): Last day of time off (YYYY-MM-DD)
+- time_off_type (string): Type of leave (vacation, sick, personal, bereavement, jury_duty, maternity, paternity)
+- half_day_start (boolean): Whether first day is half day
+- half_day_end (boolean): Whether last day is half day
+- reason (string): Reason for time off (optional for vacation)
+- coverage_plan (string): Who will cover responsibilities during absence
+- contact_during_leave (boolean): Whether employee can be contacted
+
+Steps:
+1. Calculate total days requested accounting for half days
+2. Check employee's available balance for time_off_type
+3. If insufficient balance, offer option to take unpaid leave
+4. Check for team conflicts and overlapping requests
+5. Verify no critical deadlines during requested period
+6. If time_off_type is sick and duration > 3 days, flag for medical documentation
+7. If time_off_type is bereavement, auto-approve and send condolences
+8. Route for approval based on duration:
+   - 1-2 days: Direct manager
+   - 3-5 days: Department head
+   - 6+ days: Department head + HR
+9. Update team calendar with approved time off
+10. Send confirmation email with coverage arrangements
+
+Outputs:
+- request_id (string): Unique time-off request identifier
+- approval_status (string): Status (approved, pending, denied)
+- days_requested (float): Total days including half days
+- remaining_balance (float): Balance after approval
+- approver (string): Name of approving manager
+- coverage_confirmed (boolean): Whether coverage plan is confirmed

@@ -126,7 +126,7 @@ class ConnectionManager:
             timestamp=datetime.utcnow()
         )
 
-        await self.send_to_session(session_id, message.model_dump())
+        await self.send_to_session(session_id, message.model_dump(mode='json'))
 
     async def broadcast_status(
         self,
@@ -149,7 +149,7 @@ class ConnectionManager:
             timestamp=datetime.utcnow()
         )
 
-        await self.send_to_session(session_id, message.model_dump())
+        await self.send_to_session(session_id, message.model_dump(mode='json'))
 
     async def broadcast_result(
         self,
@@ -172,7 +172,7 @@ class ConnectionManager:
             timestamp=datetime.utcnow()
         )
 
-        await self.send_to_session(session_id, message.model_dump())
+        await self.send_to_session(session_id, message.model_dump(mode='json'))
 
     async def broadcast_error(
         self,
@@ -195,7 +195,7 @@ class ConnectionManager:
             timestamp=datetime.utcnow()
         )
 
-        await self.send_to_session(session_id, message.model_dump())
+        await self.send_to_session(session_id, message.model_dump(mode='json'))
 
     def get_connection_count(self, session_id: str) -> int:
         """
@@ -248,7 +248,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             content=f"Connected to session {session_id}",
             timestamp=datetime.utcnow()
         )
-        await websocket.send_json(welcome.model_dump())
+        await websocket.send_json(welcome.model_dump(mode='json'))
 
         # Keep connection alive and handle incoming messages
         while True:

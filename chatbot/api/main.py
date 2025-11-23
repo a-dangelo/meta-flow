@@ -90,6 +90,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # React dev server
+        "http://localhost:3001",  # Chatbot frontend
+        "http://127.0.0.1:3001",  # Chatbot frontend (127.0.0.1)
         "http://localhost:5173",  # Vite dev server
         "http://localhost:8080",  # Alternative frontend port
     ],
