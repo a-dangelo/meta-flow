@@ -41,7 +41,7 @@ export interface ChatMessageRequest {
 export interface ChatMessageResponse {
   session_id: string;
   status: 'pending' | 'collecting_parameters' | 'awaiting_user_input' |
-          'ready_to_validate' | 'validated' | 'executing' | 'completed' | 'failed';
+          'ready_to_validate' | 'validated' | 'executing' | 'completed' | 'failed' | 'rejected';
   message?: string;
   matched_workflow?: string;
   search_confidence?: number;
@@ -50,6 +50,7 @@ export interface ChatMessageResponse {
   pending_parameters?: string[];
   validation_errors?: string[];
   execution_result?: any;
+  python_code?: string;  // Generated Python agent code for transparency
   error_message?: string;
   node_timings?: Record<string, number>;
 }
@@ -60,6 +61,8 @@ export interface SessionStateResponse {
   status: string;
   workflow?: string;
   collected_parameters?: Record<string, any>;
+  python_code?: string;  // Generated Python agent code
+  execution_result?: any;
   created_at: string;
   updated_at: string;
 }
@@ -119,6 +122,8 @@ export interface ChatSession {
   pendingParameters: string[];
   executionLogs: string[];
   isConnected: boolean;
+  pythonCode?: string;  // Generated Python agent code
+  executionResult?: any;  // Workflow execution results
 }
 
 export interface ChatStore {

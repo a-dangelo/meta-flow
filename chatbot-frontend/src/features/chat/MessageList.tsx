@@ -121,15 +121,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, workflow }) => {
             {/* Confidence badge for assistant messages */}
             {!isUser && message.confidence && workflow && (
               <HStack spacing={2} mb={2}>
-                <Badge
-                  colorScheme={message.confidence > 70 ? 'green' : 'orange'}
-                  fontSize="xs"
-                >
-                  {Math.round(message.confidence)}% match
-                </Badge>
-                <Text fontSize="xs" color="gray.500">
-                  {workflow.name}
-                </Text>
+                {(() => {
+                  const percent = Math.round(message.confidence * 100);
+                  const colorScheme = percent >= 70 ? 'green' : 'orange';
+                  return (
+                    <>
+                      <Badge
+                        colorScheme={colorScheme}
+                        fontSize="xs"
+                      >
+                        {percent}% match
+                      </Badge>
+                      <Text fontSize="xs" color="gray.500">
+                        {workflow.name}
+                      </Text>
+                    </>
+                  );
+                })()}
               </HStack>
             )}
 

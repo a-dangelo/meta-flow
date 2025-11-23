@@ -90,6 +90,8 @@ export const useChatStore = create<ChatStore>()(
             pendingParameters: [],
             executionLogs: [],
             isConnected: false,
+            pythonCode: undefined,
+            executionResult: undefined,
           };
 
           set((state) => ({
@@ -138,6 +140,8 @@ export const useChatStore = create<ChatStore>()(
               pendingParameters: [],
               executionLogs: [],
               isConnected: false,
+              pythonCode: sessionData.python_code,
+              executionResult: sessionData.execution_result,
             };
 
             set((state) => ({
@@ -228,6 +232,8 @@ export const useChatStore = create<ChatStore>()(
                 } : undefined,
                 collectedParameters: response.collected_parameters || {},
                 pendingParameters: response.pending_parameters || [],
+                pythonCode: response.python_code,
+                executionResult: response.execution_result,
               } : null,
               isLoading: false,
             }));

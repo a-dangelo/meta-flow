@@ -21,6 +21,7 @@ import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import { ParameterDrawer } from './ParameterDrawer';
 import { ExecutionPanel } from './ExecutionPanel';
+import { ExecutionDetails } from './ExecutionDetails';
 import { useChat } from '../../hooks/useChat';
 
 export const ChatLayout: React.FC = () => {
@@ -34,6 +35,9 @@ export const ChatLayout: React.FC = () => {
     workflow,
     executionLogs,
     pendingParameters,
+    collectedParameters,
+    pythonCode,
+    executionResult,
     sendMessage,
     startNewSession,
     clearSession,
@@ -127,6 +131,15 @@ export const ChatLayout: React.FC = () => {
               isLoading={isLoading}
               error={error}
               workflow={workflow}
+            />
+
+            {/* Execution Details - shown after completion */}
+            <ExecutionDetails
+              status={status}
+              pythonCode={pythonCode}
+              executionResult={executionResult}
+              collectedParameters={collectedParameters}
+              workflowName={workflow?.name}
             />
           </Box>
 

@@ -58,6 +58,8 @@ export function useChat() {
     collectedParameters: store.currentSession?.collectedParameters || {},
     pendingParameters: store.currentSession?.pendingParameters || [],
     workflow: store.currentSession?.workflow,
+    pythonCode: store.currentSession?.pythonCode,
+    executionResult: store.currentSession?.executionResult,
 
     // Actions
     sendMessage,
