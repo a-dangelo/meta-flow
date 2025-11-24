@@ -209,8 +209,8 @@ class ParallelWorkflow:
     """
     Represents parallel execution of multiple workflow branches.
 
-    Note: For the PoC, this will be implemented as sequential execution
-    with a clear TODO comment in the generated code.
+    Branches are executed concurrently using asyncio.gather() in the
+    generated Python code, with optional wait-for-all semantics.
     """
     type: str = field(default="parallel", init=False)
     branches: List[Union['ToolCall', 'SequentialWorkflow', 'ConditionalWorkflow',
@@ -484,27 +484,27 @@ if __name__ == "__main__":
         steps=[
             ToolCall(
                 tool_name="fetch_expense_data",
-                parameters={"expense_id": "${inputs.expense_id}"},
+                parameters={"expense_id": "{{inputs.expense_id}}"},
                 assigns_to="expense_data"
             ),
             ConditionalWorkflow(
                 condition="expense_data.amount > 10000",
                 if_branch=ToolCall(
                     tool_name="require_manager_approval",
-                    parameters={"expense": "${expense_data}"},
+                    parameters={"expense": "{{expense_data}}"},
                     assigns_to="approval_result"
                 ),
                 else_branch=ToolCall(
                     tool_name="auto_approve",
-                    parameters={"expense": "${expense_data}"},
+                    parameters={"expense": "{{expense_data}}"},
                     assigns_to="approval_result"
                 )
             ),
             ToolCall(
                 tool_name="notify_submitter",
                 parameters={
-                    "expense_id": "${inputs.expense_id}",
-                    "result": "${approval_result}"
+                    "expense_id": "{{inputs.expense_id}}",
+                    "result": "{{approval_result}}"
                 }
             )
         ],

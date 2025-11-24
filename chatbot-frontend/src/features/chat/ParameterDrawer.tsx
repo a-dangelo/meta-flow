@@ -185,7 +185,7 @@ function renderInput(
   if (type === 'boolean') {
     return (
       <Select
-        value={value}
+        value={String(value)}
         onChange={(e) => onChange(e.target.value === 'true')}
         placeholder="Select..."
       >

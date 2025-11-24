@@ -777,7 +777,19 @@ def escalation_node(state: MetaAgentState) -> MetaAgentState:
     report = "\n".join(report_parts)
     logger.warning(f"\n{report}")
 
+    # Build user-facing error message for client consumption
+    error_msg = "Agent generation failed after 3 retries."
+    if state.get('validation_errors'):
+        error_msg += "\n\nValidation errors:"
+        for error in state['validation_errors'][:5]:  # Show first 5 errors
+            error_msg += f"\n  - {error}"
+    elif state.get('parsing_errors'):
+        error_msg += "\n\nParsing errors:"
+        for error in state['parsing_errors'][:5]:  # Show first 5 errors
+            error_msg += f"\n  - {error}"
+
     return {
         **state,
-        'execution_status': 'escalated'
+        'execution_status': 'escalated',
+        'error_message': error_msg
     }

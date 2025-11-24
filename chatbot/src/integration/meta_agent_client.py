@@ -54,6 +54,12 @@ class MetaAgentClient:
         # Note: meta-agent returns "complete" not "completed"
         if result.get("execution_status") != "complete":
             error_msg = result.get("error_message", "Unknown error")
+
+            # Fallback: Check validation_errors directly if error_message is generic
+            if error_msg == "Unknown error" and result.get("validation_errors"):
+                error_msg = "Validation failed:\n"
+                error_msg += "\n".join(f"  - {e}" for e in result["validation_errors"][:5])
+
             raise ValueError(f"Meta-agent generation failed: {error_msg}")
 
         # Get workflow_spec dict from result

@@ -252,6 +252,42 @@ If a step inside a SequentialWorkflow has "if/else", that step must be a Conditi
 }
 ```
 
+**IMPORTANT - Multi-Way Routing Pattern:**
+When the spec describes routing to **3+ destinations** based on a **single variable**, use OrchestratorWorkflow instead of nested ConditionalWorkflows:
+
+❌ **BAD (Don't use nested if-else-if chains):**
+```
+"Route based on type:
+  - If type=A, do X
+  - If type=B, do Y
+  - If type=C, do Z
+  - If type=D, do W"
+```
+This should NOT be nested ConditionalWorkflows - use Orchestrator instead!
+
+✅ **GOOD (Use OrchestratorWorkflow for switch/case pattern):**
+```json
+{
+  "type": "orchestrator",
+  "sub_workflows": {
+    "handle_a": {"type": "tool_call", "tool_name": "handle_type_a", ...},
+    "handle_b": {"type": "tool_call", "tool_name": "handle_type_b", ...},
+    "handle_c": {"type": "tool_call", "tool_name": "handle_type_c", ...},
+    "handle_d": {"type": "tool_call", "tool_name": "handle_type_d", ...}
+  },
+  "routing_rules": [
+    {"condition": "{{type}} == 'A'", "workflow_name": "handle_a"},
+    {"condition": "{{type}} == 'B'", "workflow_name": "handle_b"},
+    {"condition": "{{type}} == 'C'", "workflow_name": "handle_c"},
+    {"condition": "{{type}} == 'D'", "workflow_name": "handle_d"}
+  ]
+}
+```
+
+**Rule of thumb:**
+- 2 outcomes → ConditionalWorkflow (if/else)
+- 3+ outcomes based on same variable → OrchestratorWorkflow (switch/case)
+
 ---
 
 ## VARIABLE REFERENCE RULES (ZERO TOLERANCE)

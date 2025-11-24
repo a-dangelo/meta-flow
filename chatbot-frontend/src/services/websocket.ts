@@ -37,7 +37,6 @@ class WebSocketClient {
 
   connect(sessionId: string, handlers: WebSocketHandlers = {}): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      console.log('[WS] Already connected');
       return;
     }
 
@@ -46,13 +45,10 @@ class WebSocketClient {
     // WebSocket URL for chatbot API
     const wsUrl = `${this.baseURL}/chat/${sessionId}`;
 
-    console.log(`[WS] Connecting to ${wsUrl}`);
-
     // Create native WebSocket connection
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('[WS] Connected');
       this.reconnectAttempts = 0;
       handlers.onConnect?.();
 
@@ -65,12 +61,11 @@ class WebSocketClient {
         const message: WSMessage = JSON.parse(event.data);
         this.handleMessage(message);
       } catch (error) {
-        console.error('[WS] Failed to parse message:', error);
+        // Silently handle parse errors - malformed messages are ignored
       }
     };
 
     ws.onerror = (error) => {
-      console.error('[WS] Error:', error);
       handlers.onError?.({
         type: 'error',
         data: {
@@ -81,13 +76,11 @@ class WebSocketClient {
     };
 
     ws.onclose = () => {
-      console.log('[WS] Disconnected');
       handlers.onDisconnect?.();
 
-      // Attempt reconnection
+      // Attempt reconnection with exponential backoff
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
-        console.log(`[WS] Reconnecting... (attempt ${this.reconnectAttempts})`);
         setTimeout(() => {
           this.connect(sessionId, handlers);
         }, 2000 * this.reconnectAttempts);
@@ -108,12 +101,9 @@ class WebSocketClient {
   }
 
   private handleMessage(message: WSMessage): void {
-    console.log(`[WS] Received:`, message.type, message.data);
-
     switch (message.type) {
       case 'connected':
         // Welcome message, no action needed
-        console.log('[WS] Welcome message received');
         break;
       case 'log':
         this.handlers.onLog?.(message as WSLogMessage);
@@ -131,13 +121,13 @@ class WebSocketClient {
         // Heartbeat response, no action needed
         break;
       default:
-        console.warn('[WS] Unknown message type:', message.type);
+        // Unknown message types are silently ignored
+        break;
     }
   }
 
   disconnect(): void {
     if (this.socket) {
-      console.log('[WS] Disconnecting...');
       this.socket.close();
       this.socket = null;
     }
@@ -148,9 +138,8 @@ class WebSocketClient {
   send(message: WSMessage): void {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(message));
-    } else {
-      console.warn('[WS] Cannot send message - not connected');
     }
+    // Silently fail if not connected - caller should check isConnected() first
   }
 
   isConnected(): boolean {

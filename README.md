@@ -80,7 +80,7 @@ For automation or CI/CD integration:
 
 ```bash
 # Clone and setup
-git clone <your-repo-url>
+git clone https://github.com/a-dangelo/meta-flow.git
 cd meta-flow
 python3 -m venv venv
 source venv/bin/activate

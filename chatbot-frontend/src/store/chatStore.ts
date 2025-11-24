@@ -104,11 +104,9 @@ export const useChatStore = create<ChatStore>()(
           const handlers: WebSocketHandlers = {
             onConnect: () => {
               set({ isConnected: true });
-              console.log('[Store] WebSocket connected');
             },
             onDisconnect: () => {
               set({ isConnected: false });
-              console.log('[Store] WebSocket disconnected');
             },
             onLog: (msg) => {
               get().addExecutionLog(msg.data.message);
@@ -307,7 +305,8 @@ export const useChatStore = create<ChatStore>()(
             const response = await api.listWorkflows('employee');
             set({ workflows: response.workflows });
           } catch (error) {
-            console.error('Failed to load workflows:', error);
+            // Silently fail workflow loading - UI will show empty list
+            set({ workflows: [] });
           }
         },
 
