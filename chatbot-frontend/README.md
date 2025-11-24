@@ -2,6 +2,8 @@
 
 React-based conversational interface for the Meta-Flow workflow automation system.
 
+![Chatbot Interface](artifacts/chatbot_image_1.png)
+
 ## Overview
 
 This frontend application provides a conversational user interface for interacting with the Meta-Flow automation system. It enables employees to execute workflows through natural language conversations, with automatic parameter collection and real-time execution monitoring.
@@ -32,17 +34,42 @@ This frontend application provides a conversational user interface for interacti
 - npm 9.0 or higher
 - Backend API running on port 8000
 
-## Installation
+## Running the Application
+
+### Docker (Production)
+
+The chatbot frontend is automatically built and served via Nginx in Docker:
+
+```bash
+# Start with interactive menu
+./scripts/start.sh
+
+# Or directly
+./scripts/chatbot-start.sh
+
+# Access at http://localhost:3002
+```
+
+The Docker build:
+1. Builds static assets with Vite
+2. Serves via Nginx on port 80 (mapped to host 3002)
+3. Proxies `/api/*` and `/ws/*` requests to chatbot backend
+4. Includes health check endpoint at `/health`
+
+### Local Development
+
+For frontend development with hot module replacement:
 
 1. Install dependencies:
    ```bash
+   cd chatbot-frontend
    npm install
    ```
 
 2. Start the backend API (separate terminal):
    ```bash
    cd /workspaces/meta-flow
-   python -m chatbot.api.main
+   ./scripts/chatbot-start.sh  # Or start backend manually
    ```
 
 3. Start the development server:
@@ -51,6 +78,19 @@ This frontend application provides a conversational user interface for interacti
    ```
 
 4. Access the application at http://localhost:5173
+
+**Environment Variables:**
+
+Create `chatbot-frontend/.env` for local development:
+```bash
+# Backend API URL (default: /api, uses Vite proxy)
+VITE_CHATBOT_API_URL=/api
+
+# WebSocket URL (default: /ws, uses Vite proxy)
+VITE_CHATBOT_WS_URL=/ws
+```
+
+The Vite proxy forwards requests automatically during development, avoiding CORS issues.
 
 ## Project Structure
 

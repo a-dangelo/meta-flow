@@ -53,7 +53,7 @@ Employee → Chatbot Interface → Intent Matcher → Workflow Repository
 pip install -r requirements.txt
 
 # Download sentence-transformers model (first run)
-python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
 ```
 
 ### Environment Variables
@@ -68,21 +68,29 @@ export REDIS_URL=redis://localhost:6379
 
 ## Running the Chatbot
 
-### Development
+### Docker (Recommended)
+
+```bash
+# Start with interactive menu
+./scripts/start.sh
+
+# Or directly
+./scripts/chatbot-start.sh
+
+# Access:
+# - Frontend: http://localhost:3002
+# - Backend API: http://localhost:8001
+# - API Docs: http://localhost:8001/api/docs
+```
+
+### Local Development
 
 ```bash
 # Start chatbot API
 cd chatbot
-python -m api.main
+uvicorn api.main:app --reload --port 8001
 
 # API available at http://localhost:8001
-```
-
-### Docker
-
-```bash
-# From project root
-docker-compose up chatbot chatbot-frontend
 ```
 
 ## Usage Example
@@ -239,7 +247,7 @@ EXECUTION_TIMEOUT = 30
 - **Fast**: Sub-100ms query time with cached embeddings
 - **Flexible**: Works with synonyms and paraphrasing
 - **Scalable**: O(n) search with pre-computed embeddings
-- **Trade-off**: Requires model download (~90MB for all-MiniLM-L6-v2)
+- **Trade-off**: Requires model download (~90MB for BAAI/bge-small-en-v1.5)
 
 ### Why LangGraph?
 
