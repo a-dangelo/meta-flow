@@ -54,9 +54,37 @@ class WorkflowRepository:
         self.workflows_dir = Path(workflows_dir)
         self.confidence_threshold = confidence_threshold
 
-        # Load sentence transformer model with BGE-M3 optimization
-        self.encoder = SentenceTransformer(model_name)
-        if "bge" in model_name.lower():
+        # Load sentence transformer model; fall back to a lightweight dummy encoder if unavailable
+        try:
+            # Try local cache first to avoid network dependency
+            self.encoder = SentenceTransformer(model_name, cache_folder=Path.home() / ".cache" / "sbert", local_files_only=True)
+        except Exception:
+            # Try again without local_files_only (may still fail if network is disabled)
+            try:
+                self.encoder = SentenceTransformer(model_name, cache_folder=Path.home() / ".cache" / "sbert")
+            except Exception:
+                # Final fallback: dummy encoder that returns zero vectors to keep API alive
+                import logging
+                logging.getLogger(__name__).warning(
+                    "SentenceTransformer '%s' not available; using dummy encoder. Semantic matching will be degraded.",
+                    model_name,
+                )
+
+                class DummyEncoder:
+                    def __init__(self, dim: int = 384):
+                        self.max_seq_length = 512
+                        self._dim = dim
+
+                    def encode(self, texts, convert_to_numpy=True, **kwargs):
+                        if isinstance(texts, str):
+                            texts = [texts]
+                        import numpy as np
+                        arr = np.zeros((len(texts), self._dim), dtype=float)
+                        return arr if convert_to_numpy else arr.tolist()
+
+                self.encoder = DummyEncoder()
+
+        if hasattr(self.encoder, "max_seq_length") and "bge" in model_name.lower():
             self.encoder.max_seq_length = 512  # BGE-M3 optimal sequence length
 
         # Load workflows and build embeddings cache

@@ -379,6 +379,10 @@ def send_confirmation_email(employee_id: str, request_type: str,
     """
     import random
 
+    # Normalize to safe strings to avoid attribute errors if non-strings are passed
+    request_type = str(request_type or "request")
+    status = str(status or "pending")
+
     timestamp = datetime.now()
     random.seed(f"{employee_id}{request_type}{timestamp.timestamp()}")
     message_id = f"MSG-{random.randint(1000000, 9999999)}"

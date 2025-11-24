@@ -14,6 +14,7 @@ from typing import Dict, Any, Set, List, Optional
 from datetime import datetime
 import re
 import json
+import inspect
 
 # Import Phase 1 models
 from src.agents.models import (
@@ -254,6 +255,8 @@ class AgentGenerator:
             "",
             self._indent(self._generate_init_method(), 1),
             "",
+            self._indent(self._generate_helper_methods(), 1),
+            "",
             self._indent(self._generate_execute_method(), 1),
             "",
             self._indent(self._generate_tool_methods(), 1)
@@ -276,6 +279,71 @@ class AgentGenerator:
             "def __init__(self):",
             '    """Initialize agent with empty context."""',
             "    self.context: Dict[str, Any] = {}"
+        ]
+        return "\n".join(lines)
+
+    def _generate_helper_methods(self) -> str:
+        """
+        Generate helper methods for the agent class.
+
+        Returns:
+            Helper methods code
+        """
+        lines = [
+            "def _extract_value(self, value: Any, field_name: str) -> Any:",
+            '    """',
+            '    Extract scalar value from tool response dict or return value as-is.',
+            '    ',
+            '    Tool stubs return {"status": "not_implemented", "data": {...}}',
+            '    This method extracts the actual value for comparisons.',
+            '    """',
+            "    if not isinstance(value, dict):",
+            "        return value",
+            "    ",
+            "    # Try to extract from common wrapper fields",
+            "    if 'data' in value:",
+            "        data = value['data']",
+            "        extracted = self._extract_value(data, field_name)",
+            "        if not isinstance(extracted, dict):",
+            "            return extracted",
+            "    ",
+            "    # Support dotted field names (e.g., total_days.total_days)",
+            "    if isinstance(field_name, str) and '.' in field_name:",
+            "        root, *rest = field_name.split('.')",
+            "        if root in value:",
+            "            next_field = '.'.join(rest) if rest else root",
+            "            return self._extract_value(value[root], next_field)",
+            "    ",
+            "    # Try to extract field with same name as variable",
+            "    if field_name in value:",
+            "        return self._extract_value(value[field_name], field_name)",
+            "    ",
+            "    # If it's a simple dict with one value, extract it",
+            "    if len(value) == 1:",
+            "        only_val = list(value.values())[0]",
+            "        return self._extract_value(only_val, field_name)",
+            "    ",
+            "    # As a last resort, try to pull the first numeric leaf (int/float)",
+            "    def _first_numeric(obj):",
+            "        if isinstance(obj, (int, float)):",
+            "            return obj",
+            "        if isinstance(obj, dict):",
+            "            for v in obj.values():",
+            "                num = _first_numeric(v)",
+            "                if num is not None:",
+            "                    return num",
+            "        if isinstance(obj, (list, tuple)):",
+            "            for v in obj:",
+            "                num = _first_numeric(v)",
+            "                if num is not None:",
+            "                    return num",
+            "        return None",
+            "    num = _first_numeric(value)",
+            "    if num is not None:",
+            "        return num",
+            "    ",
+            "    # Return as-is if no extraction possible",
+            "    return value"
         ]
         return "\n".join(lines)
 
@@ -402,6 +470,28 @@ class AgentGenerator:
 
         # Generate parameter list (key=value for function calls, not dict syntax)
         params = []
+
+        # If tool is a known library function, enforce required parameters at generation time
+        if node.tool_name in TOOL_REGISTRY:
+            module_path = TOOL_REGISTRY[node.tool_name]
+            module = __import__(module_path, fromlist=[node.tool_name])
+            func = getattr(module, node.tool_name)
+            sig = inspect.signature(func)
+            required_params = [
+                p.name
+                for p in sig.parameters.values()
+                if p.default is inspect._empty
+                and p.kind in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                )
+            ]
+            for req in required_params:
+                if req not in node.parameters:
+                    raise ValueError(
+                        f"Tool '{node.tool_name}' missing required parameter '{req}'"
+                    )
+
         for key, value in node.parameters.items():
             # Resolve {{variable}} references
             resolved_value = self._resolve_variable_reference(value)
@@ -445,7 +535,14 @@ class AgentGenerator:
                     result += f"['{part}']"
                 return result
             else:
-                return f"self.context['{var_path}']"
+                # Extract scalar if the context value is a dict
+                return f"self._extract_value(self.context.get('{var_path}'), '{var_path}')"
+
+        # Check for boolean literals and convert to Python style
+        if value == 'true':
+            return 'True'
+        elif value == 'false':
+            return 'False'
 
         # Not a variable reference, return as string literal
         return repr(value)
@@ -513,9 +610,16 @@ class AgentGenerator:
                 for part in parts[1:]:
                     python_expr += f".get('{part}')" if part != parts[-1] else f"['{part}']"
             else:
-                python_expr = f"self.context.get('{var_path}')"
+                # For single variables, handle the case where tool stubs return dicts
+                # Try to extract a scalar value if the variable is a dict with 'data' field
+                python_expr = f"self._extract_value(self.context.get('{var_path}'), '{var_path}')"
 
             result = result.replace(var_ref, python_expr)
+
+        # Fix boolean literals: convert JavaScript-style to Python-style
+        # Use word boundaries to avoid replacing 'true' within other words
+        result = re.sub(r'\btrue\b', 'True', result)
+        result = re.sub(r'\bfalse\b', 'False', result)
 
         return result
 

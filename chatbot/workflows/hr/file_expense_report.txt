@@ -1,5 +1,6 @@
 Workflow: file_expense_report
-Description: Submit expense reports with automatic approval routing
+Description: Submit an employee/personal expense reimbursement request (meals/travel/supplies) with automatic approval routing
+Intent: employee expense reimbursement request
 Access: employee
 Category: finance
 
@@ -8,7 +9,7 @@ Inputs:
 - date (string): Date of expense (YYYY-MM-DD format)
 - category (string): Expense type (meals, travel, supplies, other)
 - description (string): Brief description of the expense
-- employee_id (string): Employee identifier
+- employee_id (string): Employee identifier submitting the expense for reimbursement
 
 Steps:
 1. Validate expense amount is positive and less than $50000

@@ -1,5 +1,6 @@
 Workflow: budget_approval
-Description: Request budget approval
+Description: Approve a department/org budget allocation (capex/opex funding request) with multi-level managerial approval
+Intent: departmental budget approval request
 Access: manager
 Category: finance
 
@@ -7,7 +8,7 @@ Inputs:
 - amount (float): Requested budget amount in USD
 - purpose (string): What the budget is for
 - quarter (string): Budget period (Q1, Q2, Q3, Q4)
-- department (string): Department name
+- department (string): Department requesting funds (e.g., Marketing, Engineering)
 - manager_id (string): Requesting manager ID
 
 Steps:

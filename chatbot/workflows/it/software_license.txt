@@ -18,9 +18,9 @@ Steps:
    - Zoom: $15/seat
    - Other: $20/seat
 3. Calculate total monthly cost (seats × cost_per_seat)
-4. Route for approval:
-   - If total < $100/month, auto-approve
-   - If total >= $100/month, route to IT manager
+4. Route for approval based on total monthly cost amount (use total_monthly_cost.total_cost or monthly_cost):
+   - If amount < $100/month, auto-approve
+   - If amount >= $100/month, route to IT manager
 5. Generate license request ticket
 6. Set activation timeline (immediate for approved, 2 days for pending)
 

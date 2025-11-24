@@ -457,11 +457,15 @@ class WorkflowSpec(BaseModel):
             # Check parameters for variable references
             for param_value in node.parameters.values():
                 if isinstance(param_value, str):
-                    refs = re.findall(r'\{\{([a-z_][a-z0-9_]*)\}\}', param_value)
+                    refs = re.findall(
+                        r'\{\{([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\}\}',
+                        param_value
+                    )
                     for ref in refs:
-                        if ref not in available_vars:
+                        root_ref = ref.split('.')[0]
+                        if root_ref not in available_vars:
                             raise ValueError(
-                                f"Tool '{node.tool_name}' references undefined variable '{{{{{{{{ref}}}}}}}}'. "
+                                f"Tool '{node.tool_name}' references undefined variable '{{{{{ref}}}}}'. "
                                 f"Available: {', '.join(sorted(available_vars))}"
                             )
 
@@ -475,9 +479,13 @@ class WorkflowSpec(BaseModel):
 
         elif isinstance(node, ConditionalWorkflow):
             # Validate condition variables
-            refs = re.findall(r'\{\{([a-z_][a-z0-9_]*)\}\}', node.condition)
+            refs = re.findall(
+                r'\{\{([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)*)\}\}',
+                node.condition
+            )
             for ref in refs:
-                if ref not in available_vars:
+                root_ref = ref.split('.')[0]
+                if root_ref not in available_vars:
                     raise ValueError(
                         f"Condition references undefined variable '{ref}'. "
                         f"Available: {', '.join(sorted(available_vars))}"

@@ -77,7 +77,10 @@ export const ParameterDrawer: React.FC<ParameterDrawerProps> = ({
       const value = values[paramName];
 
       // Check required
-      if (param.required && !value) {
+      if (
+        param.required &&
+        (value === undefined || value === null || value === '')
+      ) {
         validationErrors[paramName] = 'This field is required';
       }
     });
@@ -103,7 +106,7 @@ export const ParameterDrawer: React.FC<ParameterDrawerProps> = ({
 
   const renderField = (param: WorkflowParameter) => {
     const isPending = pendingParameters.includes(param.name);
-    const value = values[param.name] || '';
+    const value = values[param.name] ?? '';
     const error = errors[param.name];
 
     if (!isPending) return null;
@@ -185,7 +188,7 @@ function renderInput(
   if (type === 'boolean') {
     return (
       <Select
-        value={String(value)}
+        value={value === '' ? '' : String(value)}
         onChange={(e) => onChange(e.target.value === 'true')}
         placeholder="Select..."
       >

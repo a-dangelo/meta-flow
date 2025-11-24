@@ -29,15 +29,23 @@ ENV HF_HOME=/root/.cache/huggingface \
     HF_HUB_CACHE=/root/.cache/huggingface \
     TRANSFORMERS_CACHE=/root/.cache/huggingface \
     SENTENCE_TRANSFORMERS_HOME=/root/.cache/huggingface
+
+# Download model during build (with network access)
 RUN python - <<'PY'
 from sentence_transformers import SentenceTransformer
+import os
+
+# Ensure offline mode is disabled during build
+os.environ.pop('HF_HUB_OFFLINE', None)
 
 # This is the model used in chatbot/src/conversation/graph_hybrid.py
-SentenceTransformer("BAAI/bge-small-en-v1.5")
+print("Downloading BAAI/bge-small-en-v1.5...")
+model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+print(f"Model cached at: {model._model_card_text}")
 PY
 
-# Enable offline mode at runtime (after cache is baked)
-ENV HF_HUB_OFFLINE=1
+# Note: Removed HF_HUB_OFFLINE=1 to allow runtime downloads if needed
+# This prevents FileNotFoundError when cache is missing
 
 # Copy source
 COPY . /app

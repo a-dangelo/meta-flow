@@ -16,15 +16,17 @@ Steps:
 2. Check if device_id exists in asset management system
 3. Search knowledge base for similar resolved issues
 4. Create new IT ticket with issue details and assigned priority
-5. If issue_type is hardware, route ticket to field support team
-6. If issue_type is software, route ticket to application development team
-7. If issue_type is network, route ticket to infrastructure team
-8. If issue_type is access, route ticket to security team
-9. Otherwise, route to general IT support queue
-10. Assign ticket to next available agent from routed team
-11. Send confirmation email to employee with ticket number
-12. Send notification to assigned support agent
-13. Update IT dashboard metrics with new ticket
+5. ORCHESTRATOR WORKFLOW (switch on issue_type):
+   - hardware → field support team
+   - software → application development team
+   - network → infrastructure team
+   - access → security team
+   - other/default → general IT support queue
+   (Use an orchestrator node, not conditionals.)
+6. Assign ticket to next available agent from routed team
+7. Send confirmation email to employee with ticket number
+8. Send notification to assigned support agent
+9. Update IT dashboard metrics with new ticket
 
 Outputs:
 - ticket_id (string): Unique ticket identifier
