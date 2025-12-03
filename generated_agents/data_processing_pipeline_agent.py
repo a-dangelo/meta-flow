@@ -10,7 +10,7 @@ This agent requires the following environment variables:
 - DATABASE_URL: Database connection URL
   Setup: export DATABASE_URL=<your-value-here>
 
-Generated: 2025-11-16T09:34:48.486447
+Generated: 2025-12-03T12:26:51.273435
 Version: 1.0.0
 """
 
@@ -26,6 +26,61 @@ class DataProcessingPipelineAgent:
     def __init__(self):
         """Initialize agent with empty context."""
         self.context: Dict[str, Any] = {}
+
+    def _extract_value(self, value: Any, field_name: str) -> Any:
+        """
+        Extract scalar value from tool response dict or return value as-is.
+    
+        Tool stubs return {"status": "not_implemented", "data": {...}}
+        This method extracts the actual value for comparisons.
+        """
+        if not isinstance(value, dict):
+            return value
+    
+        # Try to extract from common wrapper fields
+        if 'data' in value:
+            data = value['data']
+            extracted = self._extract_value(data, field_name)
+            if not isinstance(extracted, dict):
+                return extracted
+    
+        # Support dotted field names (e.g., total_days.total_days)
+        if isinstance(field_name, str) and '.' in field_name:
+            root, *rest = field_name.split('.')
+            if root in value:
+                next_field = '.'.join(rest) if rest else root
+                return self._extract_value(value[root], next_field)
+    
+        # Try to extract field with same name as variable
+        if field_name in value:
+            return self._extract_value(value[field_name], field_name)
+    
+        # If it's a simple dict with one value, extract it
+        if len(value) == 1:
+            only_val = list(value.values())[0]
+            return self._extract_value(only_val, field_name)
+    
+        # As a last resort, try to pull the first numeric leaf (int/float)
+        def _first_numeric(obj):
+            if isinstance(obj, (int, float)):
+                return obj
+            if isinstance(obj, dict):
+                for v in obj.values():
+                    num = _first_numeric(v)
+                    if num is not None:
+                        return num
+            if isinstance(obj, (list, tuple)):
+                for v in obj:
+                    num = _first_numeric(v)
+                    if num is not None:
+                        return num
+            return None
+        num = _first_numeric(value)
+        if num is not None:
+            return num
+    
+        # Return as-is if no extraction possible
+        return value
 
     def execute(self, **inputs) -> Dict[str, Any]:
         """
@@ -54,10 +109,10 @@ class DataProcessingPipelineAgent:
                 self.context[key] = value
         
             # Execute workflow
-            self.context['customer_data'] = self.fetch_customer_data(customer_id=self.context['customer_id'], database_url=self.context['database_url'])
-            self.context['validation_result'] = self.validate_customer_data(customer_data=self.context['customer_data'])
-            self.context['lifetime_value'] = self.calculate_customer_lifetime_value(customer_data=self.context['customer_data'])
-            self.context['update_status'] = self.update_customer_record(customer_id=self.context['customer_id'], lifetime_value=self.context['lifetime_value'], database_url=self.context['database_url'])
+            self.context['customer_data'] = self.fetch_customer_data(customer_id=self._extract_value(self.context.get('customer_id'), 'customer_id'), database_url=self._extract_value(self.context.get('database_url'), 'database_url'))
+            self.context['validation_result'] = self.validate_customer_data(data=self._extract_value(self.context.get('customer_data'), 'customer_data'))
+            self.context['lifetime_value'] = self.calculate_customer_lifetime_value(customer_data=self._extract_value(self.context.get('customer_data'), 'customer_data'))
+            self.context['update_status'] = self.update_customer_record(customer_id=self._extract_value(self.context.get('customer_id'), 'customer_id'), metrics=self._extract_value(self.context.get('lifetime_value'), 'lifetime_value'), database_url=self._extract_value(self.context.get('database_url'), 'database_url'))
         
             # Return outputs
             return self.context
